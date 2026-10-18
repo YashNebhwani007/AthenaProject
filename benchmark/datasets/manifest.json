@@ -1,0 +1,84 @@
+{
+  "datasets": [
+    {
+      "id": "telco_churn",
+      "name": "Telco Customer Churn",
+      "path": "benchmark/datasets/telco_churn.csv",
+      "format": "csv",
+      "row_count": 1000,
+      "column_count": 8,
+      "target_column": "churn",
+      "task_type": "binary_classification",
+      "description": "Customer demographic, service subscription, and churn indicator records."
+    },
+    {
+      "id": "telco_churn_leakage",
+      "name": "Telco Churn with Planted Leakage",
+      "path": "benchmark/datasets/telco_churn_leakage.csv",
+      "format": "csv",
+      "row_count": 1000,
+      "column_count": 9,
+      "target_column": "churn",
+      "leakage_columns": ["cancellation_fee"],
+      "task_type": "binary_classification",
+      "description": "Telco churn dataset with planted target leakage column 'cancellation_fee'."
+    },
+    {
+      "id": "california_housing",
+      "name": "California Housing Prices",
+      "path": "benchmark/datasets/california_housing.csv",
+      "format": "csv",
+      "row_count": 20640,
+      "column_count": 9,
+      "target_column": "medhouseval",
+      "task_type": "regression",
+      "description": "1990 California census housing metrics and median house values in $100k."
+    },
+    {
+      "id": "california_housing_leakage",
+      "name": "California Housing with Planted Leakage",
+      "path": "benchmark/datasets/california_housing_leakage.csv",
+      "format": "csv",
+      "row_count": 20640,
+      "column_count": 10,
+      "target_column": "medhouseval",
+      "leakage_columns": ["luxury_property_tax"],
+      "task_type": "regression",
+      "description": "California housing dataset with planted target leakage column 'luxury_property_tax'."
+    },
+    {
+      "id": "adult_income",
+      "name": "Adult Census Income",
+      "path": "benchmark/datasets/adult_income.csv",
+      "format": "csv",
+      "row_count": 1000,
+      "column_count": 6,
+      "target_column": "high_income",
+      "task_type": "binary_classification",
+      "description": "Census records predicting whether income exceeds $50K/yr."
+    },
+    {
+      "id": "adult_income_leakage",
+      "name": "Adult Census Income with Planted Leakage",
+      "path": "benchmark/datasets/adult_income_leakage.csv",
+      "format": "csv",
+      "row_count": 1000,
+      "column_count": 7,
+      "target_column": "high_income",
+      "leakage_columns": ["tax_bracket_50k_fee"],
+      "task_type": "binary_classification",
+      "description": "Adult income dataset with planted target leakage column 'tax_bracket_50k_fee'."
+    },
+    {
+      "id": "titanic",
+      "name": "Titanic Passenger Survival",
+      "path": "benchmark/datasets/titanic.csv",
+      "format": "csv",
+      "row_count": 891,
+      "column_count": 9,
+      "target_column": "survived",
+      "task_type": "binary_classification",
+      "description": "Demographic and ticket details predicting passenger survival aboard Titanic."
+    }
+  ]
+}

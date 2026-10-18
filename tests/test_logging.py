@@ -1,0 +1,34 @@
+"""Tests for structured logging."""
+
+import json
+
+import pytest
+
+from athena.logging import get_logger
+
+
+def test_structured_logging_json_output(capsys: pytest.CaptureFixture[str]):
+    """Verify get_logger outputs valid JSON to stderr with bound keys."""
+    logger = get_logger("test_module")
+    logger.info("test_event", key="val", count=42)
+
+    captured = capsys.readouterr()
+    stderr_output = captured.err.strip()
+    assert stderr_output, "Expected output on stderr"
+
+    lines = [line.strip() for line in stderr_output.splitlines() if line.strip()]
+    matched = None
+    for line in reversed(lines):
+        try:
+            data = json.loads(line)
+            if data.get("event") == "test_event":
+                matched = data
+                break
+        except json.JSONDecodeError:
+            continue
+
+    assert matched is not None, f"Could not find valid JSON log in: {stderr_output}"
+    assert matched["key"] == "val"
+    assert matched["count"] == 42
+    assert matched["level"] == "info"
+    assert "timestamp" in matched

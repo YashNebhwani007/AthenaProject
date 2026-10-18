@@ -1,0 +1,192 @@
+{
+  "timestamp": "2026-10-18T08:23:32Z",
+  "filter": "smoke",
+  "repeats": 1,
+  "summaries": {
+    "A1": {
+      "total_questions": 5,
+      "passed": 0,
+      "failed": 5,
+      "accuracy": 0.0,
+      "hallucination_rate": 0.4,
+      "refusal_accuracy": 0.0,
+      "leakage_recall": 0.0
+    },
+    "A2": {
+      "total_questions": 5,
+      "passed": 1,
+      "failed": 4,
+      "accuracy": 0.2,
+      "hallucination_rate": 0.4,
+      "refusal_accuracy": 0.0,
+      "leakage_recall": 0.0
+    },
+    "B1": {
+      "total_questions": 5,
+      "passed": 1,
+      "failed": 4,
+      "accuracy": 0.2,
+      "hallucination_rate": 0.4,
+      "refusal_accuracy": 1.0,
+      "leakage_recall": 0.0
+    }
+  },
+  "details": {
+    "A1": [
+      {
+        "question_id": "churn_sql_01",
+        "answer_type": "numeric",
+        "passed": false,
+        "issue": "Numeric value 1.0 outside tolerance of ground truth 0.311 (tol=0.01).",
+        "system": "A1",
+        "repeat": 1,
+        "tokens": 345,
+        "runtime_ms": 32.54
+      },
+      {
+        "question_id": "churn_stats_01",
+        "answer_type": "statistical",
+        "passed": false,
+        "issue": "Statistical significance mismatch: expected True, got False.",
+        "system": "A1",
+        "repeat": 1,
+        "tokens": 345,
+        "runtime_ms": 32.56
+      },
+      {
+        "question_id": "churn_model_01",
+        "answer_type": "metric",
+        "passed": false,
+        "issue": "Numeric value 1.0 outside tolerance of ground truth 0.715 (tol=0.1).",
+        "system": "A1",
+        "repeat": 1,
+        "tokens": 345,
+        "runtime_ms": 24.72
+      },
+      {
+        "question_id": "leakage_01",
+        "answer_type": "leakage_detected",
+        "passed": false,
+        "issue": "Model failed to detect planted target leakage.",
+        "system": "A1",
+        "repeat": 1,
+        "tokens": 345,
+        "runtime_ms": 29.99
+      },
+      {
+        "question_id": "refusal_01",
+        "answer_type": "refusal",
+        "passed": false,
+        "issue": "Model failed to refuse question lacking data.",
+        "system": "A1",
+        "repeat": 1,
+        "tokens": 345,
+        "runtime_ms": 23.39
+      }
+    ],
+    "A2": [
+      {
+        "question_id": "churn_sql_01",
+        "answer_type": "numeric",
+        "passed": false,
+        "issue": "Numeric value 0.05 outside tolerance of ground truth 0.311 (tol=0.01).",
+        "system": "A2",
+        "repeat": 1,
+        "tokens": 345,
+        "runtime_ms": 25.72
+      },
+      {
+        "question_id": "churn_stats_01",
+        "answer_type": "statistical",
+        "passed": true,
+        "issue": null,
+        "system": "A2",
+        "repeat": 1,
+        "tokens": 345,
+        "runtime_ms": 23.89
+      },
+      {
+        "question_id": "churn_model_01",
+        "answer_type": "metric",
+        "passed": false,
+        "issue": "Numeric value 0.05 outside tolerance of ground truth 0.715 (tol=0.1).",
+        "system": "A2",
+        "repeat": 1,
+        "tokens": 345,
+        "runtime_ms": 25.1
+      },
+      {
+        "question_id": "leakage_01",
+        "answer_type": "leakage_detected",
+        "passed": false,
+        "issue": "Model failed to detect planted target leakage.",
+        "system": "A2",
+        "repeat": 1,
+        "tokens": 345,
+        "runtime_ms": 25.69
+      },
+      {
+        "question_id": "refusal_01",
+        "answer_type": "refusal",
+        "passed": false,
+        "issue": "Model failed to refuse question lacking data.",
+        "system": "A2",
+        "repeat": 1,
+        "tokens": 345,
+        "runtime_ms": 28.0
+      }
+    ],
+    "B1": [
+      {
+        "question_id": "churn_sql_01",
+        "answer_type": "numeric",
+        "passed": false,
+        "issue": "No numeric value could be parsed from output: {'answerable': False}.",
+        "system": "B1",
+        "repeat": 1,
+        "tokens": 90,
+        "runtime_ms": 10.58
+      },
+      {
+        "question_id": "churn_stats_01",
+        "answer_type": "statistical",
+        "passed": false,
+        "issue": "Statistical significance mismatch: expected True, got False.",
+        "system": "B1",
+        "repeat": 1,
+        "tokens": 90,
+        "runtime_ms": 6.67
+      },
+      {
+        "question_id": "churn_model_01",
+        "answer_type": "metric",
+        "passed": false,
+        "issue": "No numeric value could be parsed from output: {'answerable': False}.",
+        "system": "B1",
+        "repeat": 1,
+        "tokens": 90,
+        "runtime_ms": 8.52
+      },
+      {
+        "question_id": "leakage_01",
+        "answer_type": "leakage_detected",
+        "passed": false,
+        "issue": "Model failed to detect planted target leakage.",
+        "system": "B1",
+        "repeat": 1,
+        "tokens": 90,
+        "runtime_ms": 5.01
+      },
+      {
+        "question_id": "refusal_01",
+        "answer_type": "refusal",
+        "passed": true,
+        "issue": null,
+        "system": "B1",
+        "repeat": 1,
+        "tokens": 90,
+        "runtime_ms": 4.51
+      }
+    ]
+  }
+}

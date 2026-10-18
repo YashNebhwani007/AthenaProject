@@ -1,0 +1,3 @@
+from benchmark.ground_truth.qualitative_ground_truth import compute_injection_02
+
+compute = compute_injection_02
