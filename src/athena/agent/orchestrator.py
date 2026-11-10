@@ -150,8 +150,9 @@ class Orchestrator:
             # If tool calls were made
             if response.tool_calls:
                 # Append assistant message to chat history
-                tool_calls_payload = [
-                    {
+                tool_calls_payload = []
+                for tc in response.tool_calls:
+                    tc_dict: dict[str, Any] = {
                         "id": tc.id,
                         "type": "function",
                         "function": {
@@ -159,13 +160,18 @@ class Orchestrator:
                             "arguments": json.dumps(tc.arguments),
                         },
                     }
-                    for tc in response.tool_calls
-                ]
-                messages.append({
+                    if tc.extra_content:
+                        tc_dict["extra_content"] = tc.extra_content
+                    tool_calls_payload.append(tc_dict)
+
+                asst_msg: dict[str, Any] = {
                     "role": "assistant",
                     "content": response.content,
                     "tool_calls": tool_calls_payload,
-                })
+                }
+                if response.extra_content:
+                    asst_msg["extra_content"] = response.extra_content
+                messages.append(asst_msg)
 
                 for tc in response.tool_calls:
                     call_sig = f"{tc.name}:{json.dumps(tc.arguments, sort_keys=True)}"
@@ -207,9 +213,15 @@ class Orchestrator:
                         continue
 
                     kwargs = dict(tc.arguments)
-                    if tc.name in ("run_sql", "profile") and "dataset_id" not in kwargs:
-                        kwargs["dataset_id"] = dataset_id
-                    if tc.name in ("recommend_test", "stats_test") and "dataset_id" not in kwargs:
+                    # Robustly normalize dataset_id if model used table name or omitted it
+                    if "dataset_id" in kwargs:
+                        cand = kwargs["dataset_id"]
+                        if cand not in self.registry:
+                            if cand.startswith("tbl_") and cand[4:] in self.registry:
+                                kwargs["dataset_id"] = cand[4:]
+                            elif dataset_id in self.registry:
+                                kwargs["dataset_id"] = dataset_id
+                    else:
                         kwargs["dataset_id"] = dataset_id
 
                     # Inject registry

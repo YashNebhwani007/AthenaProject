@@ -7,7 +7,7 @@ from athena.config import Settings, settings
 
 def test_default_settings():
     """Verify all default configuration values match specification."""
-    s = Settings()
+    s = Settings(_env_file=None)
 
     # LLM defaults
     assert s.llm_provider == "groq"

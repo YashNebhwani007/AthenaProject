@@ -24,6 +24,7 @@ class ToolCall(BaseModel):
     id: str
     name: str
     arguments: dict[str, Any] = Field(default_factory=dict)
+    extra_content: dict[str, Any] | None = None
 
 
 class LLMResponse(BaseModel):
@@ -33,6 +34,7 @@ class LLMResponse(BaseModel):
     tool_calls: list[ToolCall] = Field(default_factory=list)
     usage: Usage = Field(default_factory=Usage)
     is_final: bool = False
+    extra_content: dict[str, Any] | None = None
 
     def model_post_init(self, __context: Any) -> None:
         # If is_final is not explicitly set, determine it by absence of tool calls

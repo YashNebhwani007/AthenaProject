@@ -54,8 +54,10 @@ class GroqClient(LLMClient):
         payload: dict[str, Any] = {
             "model": self.model,
             "messages": messages,
-            "seed": seed if seed is not None else self.default_seed,
         }
+        if "googleapis.com" not in self.base_url:
+            payload["seed"] = seed if seed is not None else self.default_seed
+
         if tools:
             payload["tools"] = tools
             payload["tool_choice"] = "auto"
@@ -112,6 +114,7 @@ class GroqClient(LLMClient):
             call_id = call.get("id", "")
             func = call.get("function", {})
             name = func.get("name", "")
+            extra_content = call.get("extra_content")
             args_raw = func.get("arguments", {})
             if isinstance(args_raw, str):
                 try:
@@ -123,7 +126,14 @@ class GroqClient(LLMClient):
             else:
                 args = {}
 
-            parsed_tool_calls.append(ToolCall(id=call_id, name=name, arguments=args))
+            parsed_tool_calls.append(
+                ToolCall(
+                    id=call_id,
+                    name=name,
+                    arguments=args,
+                    extra_content=extra_content,
+                )
+            )
 
         raw_usage = data.get("usage", {})
         prompt_tokens = raw_usage.get("prompt_tokens", 0)
@@ -140,4 +150,5 @@ class GroqClient(LLMClient):
             tool_calls=parsed_tool_calls,
             usage=usage,
             is_final=len(parsed_tool_calls) == 0,
+            extra_content=message.get("extra_content"),
         )
