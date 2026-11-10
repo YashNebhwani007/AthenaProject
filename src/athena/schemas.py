@@ -62,6 +62,11 @@ class EvidenceRef(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def normalize_evidence_ref(cls, data: Any) -> Any:
+        if isinstance(data, str):
+            parts = data.split(".", 1)
+            if len(parts) == 2:
+                return {"tool_result_id": parts[0], "metric": parts[1]}
+            return {"tool_result_id": "", "metric": data}
         if isinstance(data, dict):
             d = dict(data)
             if "tool_result_id" not in d or not d["tool_result_id"]:

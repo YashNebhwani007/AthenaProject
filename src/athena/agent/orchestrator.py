@@ -291,12 +291,8 @@ class Orchestrator:
 
         # 6. Resolve placeholders in final report
         final_report = resolve_placeholders(verified_report, trace)
-        await _emit(
-            EventType.final,
-            {"run_id": run_id, "report": final_report.model_dump()},
-        )
 
-        return RunResult(
+        run_result = RunResult(
             run_id=run_id,
             session_id=sess_id,
             question=question,
@@ -307,6 +303,16 @@ class Orchestrator:
             total_tokens=total_tokens,
             total_runtime_ms=round(budget.elapsed_seconds * 1000, 2),
         )
+        await _emit(
+            EventType.final,
+            {
+                "run_id": run_id,
+                "report": final_report.model_dump(),
+                "run_result": run_result.model_dump(),
+            },
+        )
+
+        return run_result
 
 
 async def main() -> None:

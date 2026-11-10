@@ -139,6 +139,28 @@ def test_finding_normalization_statement_and_missing_claim_type():
     assert finding.evidence == []
 
 
+def test_evidenceref_normalization_string():
+    """Verify EvidenceRef normalizes string representations like 't1.metric' or raw strings."""
+    ref1 = EvidenceRef.model_validate("titanic_analysis.survival_rate")
+    assert ref1.tool_result_id == "titanic_analysis"
+    assert ref1.metric == "survival_rate"
+
+    ref2 = EvidenceRef.model_validate("survival_rate")
+    assert ref2.tool_result_id == ""
+    assert ref2.metric == "survival_rate"
+
+    finding = Finding.model_validate({
+        "id": "f1",
+        "text": "Survival was high.",
+        "evidence": ["titanic_analysis.survival_rate", "t2.count"],
+    })
+    assert len(finding.evidence) == 2
+    assert finding.evidence[0].tool_result_id == "titanic_analysis"
+    assert finding.evidence[0].metric == "survival_rate"
+    assert finding.evidence[1].tool_result_id == "t2"
+    assert finding.evidence[1].metric == "count"
+
+
 def test_report_normalization_nested_and_aliases():
     """Verify Report handles nested 'report' key, summary alias, and string items."""
     raw = {

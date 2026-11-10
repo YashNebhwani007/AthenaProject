@@ -104,11 +104,14 @@ export const App: React.FC = () => {
         } else if (msg.event === 'final') {
           if (msg.data?.run_result) {
             const run = msg.data.run_result
-            setReport(run.report)
-            setVerification(run.verification)
+            if (run.report) setReport(run.report)
+            if (run.verification) setVerification(run.verification)
             if (run.trace && run.trace.length > 0) {
               setTrace(run.trace)
             }
+          } else if (msg.data?.report) {
+            setReport(msg.data.report)
+            if (msg.data.verification) setVerification(msg.data.verification)
           }
           setIsAnalyzing(false)
           setCurrentStepMsg(null)
