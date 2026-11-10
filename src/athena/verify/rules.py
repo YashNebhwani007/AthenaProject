@@ -110,9 +110,7 @@ def check_v1_numeric_grounding(
                     cfg.numeric_tolerance_absolute,
                     cfg.numeric_tolerance_relative * abs(m_val),
                 )
-                if abs(num_val - m_val) <= tol or (
-                    is_pct and abs(num_val / 100.0 - m_val) <= tol
-                ):
+                if abs(num_val - m_val) <= tol or (is_pct and abs(num_val / 100.0 - m_val) <= tol):
                     matched = True
                     break
 

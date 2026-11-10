@@ -137,4 +137,3 @@ class DatasetRegistry:
 
 
 default_registry = DatasetRegistry()
-

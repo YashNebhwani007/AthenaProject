@@ -49,14 +49,12 @@ def _validate_dimensions(df: pd.DataFrame, cfg: Settings) -> None:
 
     if row_count > cfg.effective_max_rows:
         raise ValueError(
-            f"Row count ({row_count:,}) exceeds maximum allowed limit "
-            f"({cfg.effective_max_rows:,})"
+            f"Row count ({row_count:,}) exceeds maximum allowed limit ({cfg.effective_max_rows:,})"
         )
 
     if col_count > cfg.max_columns:
         raise ValueError(
-            f"Column count ({col_count}) exceeds maximum allowed limit "
-            f"({cfg.max_columns})"
+            f"Column count ({col_count}) exceeds maximum allowed limit ({cfg.max_columns})"
         )
 
 

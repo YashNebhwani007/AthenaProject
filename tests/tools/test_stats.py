@@ -30,15 +30,17 @@ def stats_registry(tmp_path: Path) -> DatasetRegistry:
     group_3 = ["A"] * (n // 3) + ["B"] * (n // 3) + ["C"] * (n // 3)
     cat_binary = np.random.choice(["yes", "no"], size=n)
 
-    df = pd.DataFrame({
-        "num_normal": normal_a,
-        "num_group_b": normal_b,
-        "num_x": num_x,
-        "num_y": num_y,
-        "group_2": group_2,
-        "group_3": group_3,
-        "cat_binary": cat_binary,
-    })
+    df = pd.DataFrame(
+        {
+            "num_normal": normal_a,
+            "num_group_b": normal_b,
+            "num_x": num_x,
+            "num_y": num_y,
+            "group_2": group_2,
+            "group_3": group_3,
+            "cat_binary": cat_binary,
+        }
+    )
 
     file_path = tmp_path / "stats_data.csv"
     df.to_csv(file_path, index=False)

@@ -14,12 +14,20 @@ from athena.data import DatasetRegistry
 def sample_csv(tmp_path: Path) -> Path:
     """Create a temporary sample CSV file."""
     csv_file = tmp_path / "customers.csv"
-    df = pd.DataFrame({
-        "customer_id": [1, 2, 3, 4, 5],
-        "churn": [0, 1, 0, 0, 1],
-        "monthly_fee": [29.99, 79.50, 49.00, 99.00, 35.50],
-        "contract": ["month-to-month", "one-year", "month-to-month", "two-year", "month-to-month"],
-    })
+    df = pd.DataFrame(
+        {
+            "customer_id": [1, 2, 3, 4, 5],
+            "churn": [0, 1, 0, 0, 1],
+            "monthly_fee": [29.99, 79.50, 49.00, 99.00, 35.50],
+            "contract": [
+                "month-to-month",
+                "one-year",
+                "month-to-month",
+                "two-year",
+                "month-to-month",
+            ],
+        }
+    )
     df.to_csv(csv_file, index=False)
     return csv_file
 
@@ -28,10 +36,12 @@ def sample_csv(tmp_path: Path) -> Path:
 def sample_parquet(tmp_path: Path) -> Path:
     """Create a temporary sample Parquet file."""
     pq_file = tmp_path / "sales.parquet"
-    df = pd.DataFrame({
-        "item_id": [101, 102, 103],
-        "revenue": [500.0, 1200.5, 300.0],
-    })
+    df = pd.DataFrame(
+        {
+            "item_id": [101, 102, 103],
+            "revenue": [500.0, 1200.5, 300.0],
+        }
+    )
     df.to_parquet(pq_file, index=False)
     return pq_file
 

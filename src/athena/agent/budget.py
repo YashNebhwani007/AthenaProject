@@ -37,9 +37,7 @@ class Budget:
     ) -> None:
         cfg = app_settings or global_settings
         self.max_steps = max_steps if max_steps is not None else cfg.max_steps
-        self.max_tool_calls = (
-            max_tool_calls if max_tool_calls is not None else cfg.max_tool_calls
-        )
+        self.max_tool_calls = max_tool_calls if max_tool_calls is not None else cfg.max_tool_calls
         self.max_tokens = max_tokens if max_tokens is not None else cfg.max_tokens
         self.timeout_seconds = (
             timeout_seconds if timeout_seconds is not None else float(cfg.timeout_seconds)

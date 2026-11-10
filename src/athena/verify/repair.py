@@ -22,8 +22,11 @@ def build_repair_message(failures: list[VerificationResult]) -> str:
 
     lines.append(
         "\nPlease provide a corrected, complete Report JSON conforming strictly "
-        "to the Report schema. Ensure all cited metrics, directions, causal claims, "
-        "and data caveats are properly addressed."
+        "to the Report schema (fields: question, answerable, tldr, findings "
+        "[{id, text, claim_type, evidence}], caveats, recommendations "
+        "[{text, supported_by, confidence}]).\n"
+        "Ensure all cited metrics, directions, causal claims, and data caveats "
+        "are properly addressed."
     )
     return "\n".join(lines)
 
@@ -36,5 +39,14 @@ def parse_repaired_report(content: str) -> Report:
     if match:
         text = match.group(1).strip()
 
-    data = json.loads(text)
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError:
+        start_brace = text.find("{")
+        end_brace = text.rfind("}")
+        if start_brace != -1 and end_brace != -1 and end_brace > start_brace:
+            data = json.loads(text[start_brace : end_brace + 1])
+        else:
+            raise
+
     return Report.model_validate(data)

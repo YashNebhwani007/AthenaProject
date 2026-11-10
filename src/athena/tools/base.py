@@ -115,9 +115,7 @@ def tool_fn(
                     args=call_args,
                     status=ToolStatus.ok,
                     output=output,
-                    metrics=[
-                        m if isinstance(m, Metric) else Metric(**m) for m in metrics
-                    ],
+                    metrics=[m if isinstance(m, Metric) else Metric(**m) for m in metrics],
                     runtime_ms=round(duration_ms, 2),
                 )
             except Exception as exc:

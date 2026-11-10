@@ -39,6 +39,7 @@ def make_tool_result(
 # Rule V1 Tests: Numeric Grounding
 # -------------------------------------------------------------
 
+
 def test_v1_empty_findings_passes():
     rep = Report(question="Q", tldr="tl", findings=[])
     res = check_v1_numeric_grounding(rep, [])
@@ -123,6 +124,7 @@ def test_v1_malformed_placeholder_fails():
 # Rule V2 Tests: Claim-Evidence Consistency
 # -------------------------------------------------------------
 
+
 def test_v2_empty_findings_passes():
     rep = Report(question="Q", tldr="tl", findings=[])
     res = check_v2_claim_evidence_consistency(rep, [])
@@ -198,6 +200,7 @@ def test_v2_weak_correlation_claiming_strong_fails():
 # Rule V3 Tests: Causal Language
 # -------------------------------------------------------------
 
+
 def test_v3_empty_findings_passes():
     rep = Report(question="Q", tldr="tl", findings=[])
     res = check_v3_causal_language(rep)
@@ -267,6 +270,7 @@ def test_v3_causal_keyword_due_to_fails():
 # -------------------------------------------------------------
 # Rule V4 Tests: Linkage
 # -------------------------------------------------------------
+
 
 def test_v4_empty_report_passes():
     rep = Report(question="Q", tldr="tl", findings=[], recommendations=[])
@@ -338,6 +342,7 @@ def test_v4_recommendation_citing_unknown_finding_fails():
 # -------------------------------------------------------------
 # Rule V5 Tests: Data Quality Propagation
 # -------------------------------------------------------------
+
 
 def test_v5_clean_data_passes():
     rep = Report(question="Q", tldr="tl", findings=[], caveats=[])

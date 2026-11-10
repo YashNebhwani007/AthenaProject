@@ -53,8 +53,19 @@ def parse_report_from_text(content: str | None, question: str) -> Report:
         text = match.group(1).strip()
 
     try:
-        data = json.loads(text)
-        return Report.model_validate(data)
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError:
+            start_brace = text.find("{")
+            end_brace = text.rfind("}")
+            if start_brace != -1 and end_brace != -1 and end_brace > start_brace:
+                data = json.loads(text[start_brace : end_brace + 1])
+            else:
+                raise
+        rep = Report.model_validate(data)
+        if not rep.question:
+            rep.question = question
+        return rep
     except Exception as exc:
         logger.warning("report_json_parse_fallback", error=str(exc))
         return Report(
@@ -179,14 +190,20 @@ class Orchestrator:
                     # Loop detection: check if identical call was repeated 3+ times
                     if len(recent_calls) >= 3 and len(set(recent_calls[-3:])) == 1:
                         logger.warning("tool_loop_detected", call=call_sig)
-                        messages.append({
-                            "role": "tool",
-                            "tool_call_id": tc.id,
-                            "content": json.dumps({
-                                "error": "Loop detected: Identical tool call repeated 3 times. "
-                                "Synthesize your findings and output final Report JSON."
-                            }),
-                        })
+                        messages.append(
+                            {
+                                "role": "tool",
+                                "tool_call_id": tc.id,
+                                "content": json.dumps(
+                                    {
+                                        "error": (
+                                            "Loop detected: Tool call repeated 3 times. "
+                                            "Synthesize your findings and output final Report JSON."
+                                        )
+                                    }
+                                ),
+                            }
+                        )
                         continue
 
                     try:
@@ -205,11 +222,15 @@ class Orchestrator:
                             warnings=[f"Tool '{tc.name}' not found in registry."],
                         )
                         trace.append(err_res)
-                        messages.append({
-                            "role": "tool",
-                            "tool_call_id": tc.id,
-                            "content": json.dumps({"error": f"Tool '{tc.name}' not recognized."}),
-                        })
+                        messages.append(
+                            {
+                                "role": "tool",
+                                "tool_call_id": tc.id,
+                                "content": json.dumps(
+                                    {"error": f"Tool '{tc.name}' not recognized."}
+                                ),
+                            }
+                        )
                         continue
 
                     kwargs = dict(tc.arguments)
@@ -240,15 +261,15 @@ class Orchestrator:
                     trace.append(tool_res)
                     await _emit(EventType.tool_result, tool_res.model_dump())
                     payload_out = (
-                        tool_res.output
-                        if tool_res.output is not None
-                        else tool_res.warnings
+                        tool_res.output if tool_res.output is not None else tool_res.warnings
                     )
-                    messages.append({
-                        "role": "tool",
-                        "tool_call_id": tc.id,
-                        "content": json.dumps(payload_out),
-                    })
+                    messages.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": tc.id,
+                            "content": json.dumps(payload_out),
+                        }
+                    )
 
             # Check if LLM produced final response
             if response.is_final or not response.tool_calls:

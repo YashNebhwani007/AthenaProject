@@ -119,8 +119,7 @@ async def explain_model(
     mean_abs_shap = np.mean(np.abs(vals), axis=0)
     top_indices = np.argsort(mean_abs_shap)[::-1]
     global_importances = [
-        {"feature": feature_names[i], "importance": float(mean_abs_shap[i])}
-        for i in top_indices
+        {"feature": feature_names[i], "importance": float(mean_abs_shap[i])} for i in top_indices
     ]
 
     # 7. Local explanation for specific sample

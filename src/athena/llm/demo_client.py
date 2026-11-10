@@ -44,9 +44,7 @@ class DemoLLMClient(LLMClient):
             return self._build_b1_code_response(user_msg)
 
         # Check if tool results exist in history
-        tool_results: list[dict[str, Any]] = [
-            m for m in messages if m.get("role") == "tool"
-        ]
+        tool_results: list[dict[str, Any]] = [m for m in messages if m.get("role") == "tool"]
 
         if not tool_results:
             # Turn 1: Formulate tool call

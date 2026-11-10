@@ -55,17 +55,21 @@ def _create_preprocessor(
     """Create sklearn ColumnTransformer for numeric imputation/scaling and categorical encoding."""
     transformers = []
     if num_cols:
-        num_pipeline = Pipeline([
-            ("imputer", SimpleImputer(strategy="median")),
-            ("scaler", StandardScaler()),
-        ])
+        num_pipeline = Pipeline(
+            [
+                ("imputer", SimpleImputer(strategy="median")),
+                ("scaler", StandardScaler()),
+            ]
+        )
         transformers.append(("num", num_pipeline, num_cols))
 
     if cat_cols:
-        cat_pipeline = Pipeline([
-            ("imputer", SimpleImputer(strategy="most_frequent")),
-            ("ohe", OneHotEncoder(handle_unknown="ignore", sparse_output=False)),
-        ])
+        cat_pipeline = Pipeline(
+            [
+                ("imputer", SimpleImputer(strategy="most_frequent")),
+                ("ohe", OneHotEncoder(handle_unknown="ignore", sparse_output=False)),
+            ]
+        )
         transformers.append(("cat", cat_pipeline, cat_cols))
 
     return ColumnTransformer(transformers=transformers, remainder="drop")
@@ -166,10 +170,12 @@ async def train_model(
 
     for name, estimator in models.items():
         preprocessor = _create_preprocessor(num_cols, cat_cols)
-        pipe = Pipeline([
-            ("preprocessor", preprocessor),
-            ("model", estimator),
-        ])
+        pipe = Pipeline(
+            [
+                ("preprocessor", preprocessor),
+                ("model", estimator),
+            ]
+        )
 
         # 5-fold cross-validation on train set
         try:
@@ -195,9 +201,7 @@ async def train_model(
             metrics_dict["recall"] = float(
                 recall_score(y_test, y_pred, average="macro", zero_division=0)
             )
-            metrics_dict["f1"] = float(
-                f1_score(y_test, y_pred, average="macro", zero_division=0)
-            )
+            metrics_dict["f1"] = float(f1_score(y_test, y_pred, average="macro", zero_division=0))
 
             if is_binary and hasattr(pipe, "predict_proba"):
                 try:

@@ -94,11 +94,13 @@ async def make_plot(
             f"Distribution of {x} (N={len(series):,}): Mean is {mean_val:.2f}, "
             f"Median is {median_val:.2f}, Std is {std_val:.2f}."
         )
-        metrics.extend([
-            Metric(name=f"{x}_mean", value=round(mean_val, 4), unit=""),
-            Metric(name=f"{x}_median", value=round(median_val, 4), unit=""),
-            Metric(name=f"{x}_std", value=round(std_val, 4), unit=""),
-        ])
+        metrics.extend(
+            [
+                Metric(name=f"{x}_mean", value=round(mean_val, 4), unit=""),
+                Metric(name=f"{x}_median", value=round(median_val, 4), unit=""),
+                Metric(name=f"{x}_std", value=round(std_val, 4), unit=""),
+            ]
+        )
 
     elif chart_type == "bar":
         if not x or x not in df.columns:
@@ -161,10 +163,12 @@ async def make_plot(
                 f"Box plot for {col_to_plot}: Median={median_val:.2f}, "
                 f"Q1={q1:.2f}, Q3={q3:.2f}, IQR={q3 - q1:.2f}."
             )
-            metrics.extend([
-                Metric(name=f"{col_to_plot}_median", value=round(median_val, 4), unit=""),
-                Metric(name=f"{col_to_plot}_iqr", value=round(q3 - q1, 4), unit=""),
-            ])
+            metrics.extend(
+                [
+                    Metric(name=f"{col_to_plot}_median", value=round(median_val, 4), unit=""),
+                    Metric(name=f"{col_to_plot}_iqr", value=round(q3 - q1, 4), unit=""),
+                ]
+            )
 
     elif chart_type == "scatter":
         if not x or not y or x not in df.columns or y not in df.columns:

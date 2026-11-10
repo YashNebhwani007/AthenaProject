@@ -113,8 +113,7 @@ def _check_correlations(df: pd.DataFrame, target_col: str) -> list[LeakageFindin
                         column=c,
                         severity=severity,
                         detail=(
-                            f"Extreme correlation |r|={abs(corr):.4f} "
-                            f"with target '{target_col}'."
+                            f"Extreme correlation |r|={abs(corr):.4f} with target '{target_col}'."
                         ),
                         value=round(float(corr), 4),
                     )
@@ -149,8 +148,7 @@ def _check_single_feature_auc(df: pd.DataFrame, target_col: str) -> list[Leakage
                             column=c,
                             severity="high",
                             detail=(
-                                f"Single feature '{c}' achieves "
-                                f"near-perfect ROC-AUC={auc_max:.4f}."
+                                f"Single feature '{c}' achieves near-perfect ROC-AUC={auc_max:.4f}."
                             ),
                             value=round(auc_max, 4),
                         )
@@ -245,10 +243,9 @@ async def check_leakage(
     else:
         max_severity = "none"
 
-    suspicious_cols = sorted(list({
-        f.column for f in all_findings
-        if f.column and f.severity in ("high", "medium")
-    }))
+    suspicious_cols = sorted(
+        list({f.column for f in all_findings if f.column and f.severity in ("high", "medium")})
+    )
 
     warnings = [
         f"[{f.severity.upper()}] {f.detail}"

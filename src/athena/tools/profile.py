@@ -136,18 +136,14 @@ async def profile_dataset(
         # Quality warnings and heuristic detection
         if null_pct > 0.30:
             high_missingness_cols.append(cname)
-            warnings.append(
-                f"Column '{cname}' has high missingness ({null_pct:.1%})"
-            )
+            warnings.append(f"Column '{cname}' has high missingness ({null_pct:.1%})")
 
         if cardinality <= 1:
             constant_columns.append(cname)
             warnings.append(f"Column '{cname}' is constant (zero variance)")
 
         if not is_numeric and cardinality > 100:
-            warnings.append(
-                f"Column '{cname}' has high cardinality ({cardinality} unique values)"
-            )
+            warnings.append(f"Column '{cname}' has high cardinality ({cardinality} unique values)")
 
         if _is_suspected_id(cname, cardinality, row_count):
             suspected_ids.append(cname)

@@ -158,3 +158,81 @@ async def test_verifier_degrades_when_unfixable():
     assert summary.unverified_claims > 0
     assert final_report.findings[0].text.startswith("[UNVERIFIED]")
     assert any("Unverified claim in f1" in c for c in final_report.caveats)
+
+
+class RawJsonRepairLLM(LLMClient):
+    """Mocks LLM returning raw JSON text containing field aliases."""
+
+    def __init__(self, raw_json: str) -> None:
+        self.raw_json = raw_json
+        self.call_count = 0
+
+    async def chat(self, messages: list[dict], tools=None, seed=None) -> LLMResponse:
+        self.call_count += 1
+        return LLMResponse(
+            content=self.raw_json,
+            usage=Usage(prompt_tokens=100, completion_tokens=80),
+        )
+
+
+@pytest.mark.asyncio
+async def test_verifier_repair_handles_statement_alias_and_missing_claim_type():
+    """Verify repair loop handles LLM response using 'statement' and omitting 'claim_type'."""
+    settings = Settings(max_repair_iterations=2)
+    verifier = Verifier(app_settings=settings)
+
+    tr = ToolResult(
+        id="t1",
+        tool="stats_test",
+        status=ToolStatus.ok,
+        metrics=[Metric(name="mean_diff", value=10.0, unit="")],
+    )
+
+    flawed_report = Report(
+        question="Q",
+        tldr="Flawed",
+        findings=[
+            Finding(
+                id="f1",
+                text="Treatment causes higher sales.",  # Causal violation
+                claim_type=ClaimType.comparative,
+                evidence=[EvidenceRef(tool_result_id="t1", metric="mean_diff")],
+            )
+        ],
+        recommendations=[
+            Recommendation(text="Action", supported_by=["f1"], confidence=Confidence.high)
+        ],
+    )
+
+    # Simulated response from LLM using 'statement' and omitting 'claim_type'
+    raw_response = """
+    ```json
+    {
+      "question": "Q",
+      "tldr": "Corrected summary",
+      "findings": [
+        {
+          "id": "f1",
+          "statement": "Treatment is associated with higher sales.",
+          "evidence": [{"tool_result_id": "t1", "metric": "mean_diff"}]
+        }
+      ],
+      "recommendations": [
+        {
+          "text": "Action item",
+          "supported_by": ["f1"],
+          "confidence": "high"
+        }
+      ]
+    }
+    ```
+    """
+
+    mock_llm = RawJsonRepairLLM(raw_response)
+    final_report, summary = await verifier.verify(flawed_report, [tr], llm_client=mock_llm)
+
+    assert mock_llm.call_count == 1
+    assert summary.repairs_attempted == 1
+    assert summary.failed == 0
+    assert final_report.findings[0].text == "Treatment is associated with higher sales."
+    assert final_report.findings[0].claim_type == ClaimType.descriptive

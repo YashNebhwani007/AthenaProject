@@ -124,3 +124,49 @@ def test_enum_members():
     assert ToolStatus.error == "error"
     assert EventType.step_started == "step_started"
     assert EventType.clarification_needed == "clarification_needed"
+
+
+def test_finding_normalization_statement_and_missing_claim_type():
+    """Verify Finding normalizes 'statement' to 'text' and defaults 'claim_type'."""
+    raw = {
+        "id": "f1",
+        "statement": "The overall passenger survival rate was 38.4%.",
+    }
+    finding = Finding.model_validate(raw)
+    assert finding.id == "f1"
+    assert finding.text == "The overall passenger survival rate was 38.4%."
+    assert finding.claim_type == ClaimType.descriptive
+    assert finding.evidence == []
+
+
+def test_report_normalization_nested_and_aliases():
+    """Verify Report handles nested 'report' key, summary alias, and string items."""
+    raw = {
+        "report": {
+            "question": "What was the survival rate?",
+            "summary": "Survival was approximately 38.4%.",
+            "findings": [
+                {
+                    "id": "f1",
+                    "claim": "Females survived at higher rates.",
+                }
+            ],
+            "caveats": "Small sample in some cabins.",
+            "recommendations": [
+                {
+                    "action": "Ensure lifeboats prioritize safety.",
+                    "confidence": "high",
+                }
+            ],
+        }
+    }
+    report = Report.model_validate(raw)
+    assert report.question == "What was the survival rate?"
+    assert report.tldr == "Survival was approximately 38.4%."
+    assert len(report.findings) == 1
+    assert report.findings[0].text == "Females survived at higher rates."
+    assert report.findings[0].claim_type == ClaimType.descriptive
+    assert report.caveats == ["Small sample in some cabins."]
+    assert len(report.recommendations) == 1
+    assert report.recommendations[0].text == "Ensure lifeboats prioritize safety."
+    assert report.recommendations[0].confidence == Confidence.high

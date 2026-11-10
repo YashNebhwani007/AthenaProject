@@ -79,9 +79,7 @@ def render_markdown(
         lines.append("## Recommendations")
         for idx, rec in enumerate(report.recommendations, 1):
             supported = f" (Supported by {', '.join(rec.supported_by)})" if rec.supported_by else ""
-            lines.append(
-                f"{idx}. [{rec.confidence.value.upper()}] {rec.text}{supported}"
-            )
+            lines.append(f"{idx}. [{rec.confidence.value.upper()}] {rec.text}{supported}")
         lines.append("")
 
     if report.caveats:
@@ -92,13 +90,15 @@ def render_markdown(
 
     if verification:
         status_color = "🟢 PASS" if verification.failed == 0 else "🟠 ATTENTION"
-        lines.extend([
-            "## Verification Summary",
-            (
-                f"**Status:** {status_color} "
-                f"({verification.passed}/{verification.total_checks} checks passed)"
-            ),
-        ])
+        lines.extend(
+            [
+                "## Verification Summary",
+                (
+                    f"**Status:** {status_color} "
+                    f"({verification.passed}/{verification.total_checks} checks passed)"
+                ),
+            ]
+        )
         if verification.unverified_claims > 0:
             lines.append(f"- Unverified claims: {verification.unverified_claims}")
         if verification.repairs_attempted > 0:

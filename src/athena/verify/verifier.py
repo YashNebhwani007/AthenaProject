@@ -66,7 +66,17 @@ class Verifier:
                         "role": "system",
                         "content": (
                             "You are Athena's Report Correction Engine. "
-                            "Output only valid Report JSON."
+                            "Output ONLY valid Report JSON with the following structure:\n"
+                            "{\n"
+                            '  "question": "string",\n'
+                            '  "answerable": true,\n'
+                            '  "tldr": "string",\n'
+                            '  "findings": [{"id": "f1", "text": "...", '
+                            '"claim_type": "descriptive", "evidence": []}],\n'
+                            '  "caveats": ["string"],\n'
+                            '  "recommendations": [{"text": "...", "supported_by": ["f1"], '
+                            '"confidence": "high"}]\n'
+                            "}"
                         ),
                     },
                     {

@@ -62,28 +62,30 @@ async def test_orchestrator_end_to_end_flow(dataset_registry: DatasetRegistry):
         recommendations=[],
     )
 
-    mock_llm = MockSequenceLLM([
-        # Step 1: LLM requests run_sql
-        LLMResponse(
-            content="Running SQL query to compute churn rate.",
-            tool_calls=[
-                ToolCall(
-                    id="call_sql_1",
-                    name="run_sql",
-                    arguments={"query": "SELECT count(*), avg(churn) FROM customers"},
-                )
-            ],
-            usage=Usage(prompt_tokens=100, completion_tokens=30),
-            is_final=False,
-        ),
-        # Step 2: LLM provides final Report JSON
-        LLMResponse(
-            content=f"```json\n{final_report.model_dump_json()}\n```",
-            tool_calls=[],
-            usage=Usage(prompt_tokens=200, completion_tokens=80),
-            is_final=True,
-        ),
-    ])
+    mock_llm = MockSequenceLLM(
+        [
+            # Step 1: LLM requests run_sql
+            LLMResponse(
+                content="Running SQL query to compute churn rate.",
+                tool_calls=[
+                    ToolCall(
+                        id="call_sql_1",
+                        name="run_sql",
+                        arguments={"query": "SELECT count(*), avg(churn) FROM customers"},
+                    )
+                ],
+                usage=Usage(prompt_tokens=100, completion_tokens=30),
+                is_final=False,
+            ),
+            # Step 2: LLM provides final Report JSON
+            LLMResponse(
+                content=f"```json\n{final_report.model_dump_json()}\n```",
+                tool_calls=[],
+                usage=Usage(prompt_tokens=200, completion_tokens=80),
+                is_final=True,
+            ),
+        ]
+    )
 
     orchestrator = Orchestrator(llm_client=mock_llm, registry=dataset_registry)
     result = await orchestrator.run(
@@ -127,12 +129,14 @@ async def test_orchestrator_loop_detection(dataset_registry: DatasetRegistry):
     )
 
     # Repeat same call 4 times, then finalize
-    mock_llm = MockSequenceLLM([
-        repeated_call,
-        repeated_call,
-        repeated_call,
-        LLMResponse(content='{"question": "test", "tldr": "Done"}', is_final=True),
-    ])
+    mock_llm = MockSequenceLLM(
+        [
+            repeated_call,
+            repeated_call,
+            repeated_call,
+            LLMResponse(content='{"question": "test", "tldr": "Done"}', is_final=True),
+        ]
+    )
 
     orchestrator = Orchestrator(llm_client=mock_llm, registry=dataset_registry)
     result = await orchestrator.run(question="Loop check", dataset_id="orch_test")
@@ -145,17 +149,19 @@ async def test_orchestrator_loop_detection(dataset_registry: DatasetRegistry):
 @pytest.mark.asyncio
 async def test_orchestrator_budget_exhaustion(dataset_registry: DatasetRegistry):
     """Verify orchestrator halts loop when step budget is reached."""
-    infinite_tool_calls = MockSequenceLLM([
-        LLMResponse(
-            content="Tool call step",
-            tool_calls=[
-                ToolCall(id=f"c_{i}", name="run_sql", arguments={"query": f"SELECT {i}"})
-            ],
-            usage=Usage(prompt_tokens=20, completion_tokens=5),
-            is_final=False,
-        )
-        for i in range(10)
-    ])
+    infinite_tool_calls = MockSequenceLLM(
+        [
+            LLMResponse(
+                content="Tool call step",
+                tool_calls=[
+                    ToolCall(id=f"c_{i}", name="run_sql", arguments={"query": f"SELECT {i}"})
+                ],
+                usage=Usage(prompt_tokens=20, completion_tokens=5),
+                is_final=False,
+            )
+            for i in range(10)
+        ]
+    )
 
     strict_cfg = Settings(max_steps=2)
     orchestrator = Orchestrator(
@@ -171,12 +177,14 @@ async def test_orchestrator_budget_exhaustion(dataset_registry: DatasetRegistry)
 @pytest.mark.asyncio
 async def test_orchestrator_event_callback(dataset_registry: DatasetRegistry):
     """Verify orchestrator streams events (tool_result, report_draft, verification, final)."""
-    mock_llm = MockSequenceLLM([
-        LLMResponse(
-            content='{"question": "Q?", "tldr": "Done", "findings": []}',
-            is_final=True,
-        )
-    ])
+    mock_llm = MockSequenceLLM(
+        [
+            LLMResponse(
+                content='{"question": "Q?", "tldr": "Done", "findings": []}',
+                is_final=True,
+            )
+        ]
+    )
     events = []
 
     async def on_event(ev: dict[str, Any]) -> None:
@@ -193,4 +201,3 @@ async def test_orchestrator_event_callback(dataset_registry: DatasetRegistry):
     assert "report_draft" in event_names
     assert "verification" in event_names
     assert "final" in event_names
-

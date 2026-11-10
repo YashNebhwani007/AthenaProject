@@ -72,9 +72,9 @@ class GroqClient(LLMClient):
                             try:
                                 delay = float(retry_after)
                             except ValueError:
-                                delay = 2.0 ** attempt + random.uniform(0.1, 0.5)
+                                delay = 2.0**attempt + random.uniform(0.1, 0.5)
                         else:
-                            delay = 2.0 ** attempt + random.uniform(0.1, 0.5)
+                            delay = 2.0**attempt + random.uniform(0.1, 0.5)
 
                         logger.warning(
                             "llm_rate_limit_or_server_error",
@@ -89,13 +89,13 @@ class GroqClient(LLMClient):
                 return self._parse_response(data)
             except httpx.HTTPStatusError as exc:
                 if attempt < self.max_retries and exc.response.status_code in (429, 502, 503, 504):
-                    delay = 2.0 ** attempt + random.uniform(0.1, 0.5)
+                    delay = 2.0**attempt + random.uniform(0.1, 0.5)
                     await asyncio.sleep(delay)
                     continue
                 raise
             except httpx.RequestError:
                 if attempt < self.max_retries:
-                    delay = 2.0 ** attempt + random.uniform(0.1, 0.5)
+                    delay = 2.0**attempt + random.uniform(0.1, 0.5)
                     await asyncio.sleep(delay)
                     continue
                 raise

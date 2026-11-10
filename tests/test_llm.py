@@ -121,9 +121,9 @@ async def test_groq_client_retry_on_429():
 @pytest.mark.asyncio
 async def test_cached_llm_client_record_and_replay(tmp_path: Path):
     """Verify CachedLLMClient correctly records and replays responses."""
-    inner = MockLLMClient([
-        LLMResponse(content="First run result", usage=Usage(prompt_tokens=5, completion_tokens=3))
-    ])
+    inner = MockLLMClient(
+        [LLMResponse(content="First run result", usage=Usage(prompt_tokens=5, completion_tokens=3))]
+    )
 
     cache_dir = tmp_path / "test_cache"
 
@@ -169,9 +169,9 @@ async def test_cached_llm_client_replay_miss_raises(tmp_path: Path):
 @pytest.mark.asyncio
 async def test_cached_llm_client_auto_mode(tmp_path: Path):
     """Verify auto mode fetches on miss and replays on hit."""
-    inner = MockLLMClient([
-        LLMResponse(content="Auto answer", usage=Usage(prompt_tokens=8, completion_tokens=4))
-    ])
+    inner = MockLLMClient(
+        [LLMResponse(content="Auto answer", usage=Usage(prompt_tokens=8, completion_tokens=4))]
+    )
     auto_client = CachedLLMClient(
         inner_client=inner,
         cache_mode="auto",
@@ -202,4 +202,5 @@ def test_create_llm_client_factory():
     cfg_demo = Settings(demo_mode=True)
     client_demo = create_llm_client(cfg_demo)
     from athena.llm.demo_client import DemoLLMClient
+
     assert isinstance(client_demo, DemoLLMClient)
