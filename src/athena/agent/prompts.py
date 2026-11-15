@@ -204,6 +204,13 @@ def build_context_message(handle: DatasetHandle, profile_result: ToolResult | No
     for c in handle.columns:
         lines.append(f"- `{c.name}` ({c.dtype}): sample={c.sample_values[:3]}")
 
+    if profile_result:
+        lines.append(f"\n### Initial Profiling Evidence (Tool ID: `{profile_result.id}`):")
+        lines.append(f"- Tool ID to cite in evidence: `{profile_result.id}`")
+        if profile_result.metrics:
+            sample_m = [f"`{m.name}`={m.value}" for m in profile_result.metrics[:12]]
+            lines.append(f"- Available metrics: {', '.join(sample_m)}")
+
     if profile_result and profile_result.output:
         p_out = profile_result.output
         warnings = p_out.get("quality_warnings", [])

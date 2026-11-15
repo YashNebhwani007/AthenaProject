@@ -60,6 +60,14 @@ class Verifier:
             repair_prompt = build_repair_message(failures)
             logger.info("verifier_repair_attempt", attempt=repairs_attempted, issues=len(failures))
 
+            trace_summary_lines = []
+            for tr in tool_results:
+                m_info = ", ".join(f"{m.name}={m.value}" for m in tr.metrics[:8])
+                trace_summary_lines.append(
+                    f"- Tool ID '{tr.id}' ({tr.tool}): metrics=[{m_info or 'none'}]"
+                )
+            trace_summary = "\n".join(trace_summary_lines)
+
             try:
                 repair_messages = [
                     {
@@ -82,6 +90,7 @@ class Verifier:
                     {
                         "role": "user",
                         "content": (
+                            f"Available executed tool evidence to cite:\n{trace_summary}\n\n"
                             "Previous report draft:\n"
                             f"{current_report.model_dump_json(indent=2)}\n\n"
                             f"{repair_prompt}"

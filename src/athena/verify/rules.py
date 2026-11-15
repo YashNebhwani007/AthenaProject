@@ -44,9 +44,23 @@ def check_v1_numeric_grounding(
     results: list[VerificationResult] = []
 
     metrics_map: dict[tuple[str, str], float | int | str] = {}
-    for tr in tool_results:
+    for idx, tr in enumerate(tool_results, start=1):
         for m in tr.metrics:
-            metrics_map[(tr.id, m.name)] = m.value
+            keys_to_add = [
+                (tr.id, m.name),
+                (f"t{idx}", m.name),
+                (tr.tool, m.name),
+            ]
+            if "_" in m.name:
+                suffix = m.name.split("_")[-1]
+                keys_to_add.extend([
+                    (tr.id, suffix),
+                    (f"t{idx}", suffix),
+                    (tr.tool, suffix),
+                ])
+            for k in keys_to_add:
+                if k not in metrics_map:
+                    metrics_map[k] = m.value
 
     if not report.findings:
         return [VerificationResult(rule="V1", passed=True)]
@@ -297,6 +311,10 @@ def check_v4_linkage(
     """Verify evidence linkage across findings, recommendations, and execution trace."""
     results: list[VerificationResult] = []
     trace_ids = {tr.id for tr in tool_results if tr.id}
+    for idx, tr in enumerate(tool_results, start=1):
+        trace_ids.add(f"t{idx}")
+        if tr.tool:
+            trace_ids.add(tr.tool)
     finding_ids = {f.id for f in report.findings if f.id}
 
     for finding in report.findings:

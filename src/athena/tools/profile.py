@@ -178,6 +178,16 @@ async def profile_dataset(
         ),
     ]
 
+    for cname, cstat in col_stats.items():
+        if "cardinality" in cstat:
+            metrics.append(Metric(name=f"{cname}_cardinality", value=cstat["cardinality"]))
+        if "null_count" in cstat:
+            metrics.append(Metric(name=f"{cname}_null_count", value=cstat["null_count"]))
+        if cstat.get("is_numeric"):
+            for stat_key in ("mean", "min", "max", "std", "median"):
+                if cstat.get(stat_key) is not None:
+                    metrics.append(Metric(name=f"{cname}_{stat_key}", value=cstat[stat_key]))
+
     return ToolResult(
         id="",
         tool="profile",

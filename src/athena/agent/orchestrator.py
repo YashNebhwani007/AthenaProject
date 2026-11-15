@@ -28,6 +28,7 @@ from athena.schemas import (
     ToolStatus,
 )
 from athena.tools import TOOL_REGISTRY
+from athena.tools.base import default_id_generator
 from athena.tools.profile import profile_dataset
 from athena.verify.verifier import Verifier
 
@@ -100,6 +101,7 @@ class Orchestrator:
         event_callback: Any = None,
     ) -> RunResult:
         """Run end-to-end analytical orchestration loop on dataset for a user question."""
+        default_id_generator.reset()
         run_id = f"run_{uuid.uuid4().hex[:10]}"
         sess_id = session_id or f"sess_{uuid.uuid4().hex[:8]}"
         budget = Budget(app_settings=self.settings)
@@ -263,11 +265,18 @@ class Orchestrator:
                     payload_out = (
                         tool_res.output if tool_res.output is not None else tool_res.warnings
                     )
+                    tool_msg_data: dict[str, Any] = {
+                        "tool_result_id": tool_res.id,
+                        "tool": tool_res.tool,
+                        "output": payload_out,
+                    }
+                    if tool_res.metrics:
+                        tool_msg_data["metrics"] = [m.model_dump() for m in tool_res.metrics]
                     messages.append(
                         {
                             "role": "tool",
                             "tool_call_id": tc.id,
-                            "content": json.dumps(payload_out),
+                            "content": json.dumps(tool_msg_data, default=str),
                         }
                     )
 
