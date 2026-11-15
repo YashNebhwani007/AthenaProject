@@ -31,6 +31,7 @@ class CreateSessionRequest(BaseModel):
 
 class AskQuestionRequest(BaseModel):
     question: str
+    dataset_id: str | None = None
 
 
 @router.post("/datasets")
@@ -127,7 +128,30 @@ async def ask_question(
 ) -> EventSourceResponse:
     """Stream live analytical trace events and final decision report via SSE."""
     if session_id not in SESSIONS:
-        raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found")
+        # Auto-recover session if dataset_id provided or can be resolved
+        ds_id = req.dataset_id
+        if not ds_id or ds_id not in default_registry:
+            manifest_path = Path("benchmark/datasets/manifest.json")
+            if manifest_path.exists():
+                with open(manifest_path, encoding="utf-8") as f:
+                    manifest = json.load(f)
+                for ds in manifest.get("datasets", []):
+                    csv_path = Path(ds["path"])
+                    if csv_path.exists() and ds["id"] not in default_registry:
+                        default_registry.register(dataset_id=ds["id"], file_path=csv_path)
+            if ds_id and ds_id in default_registry:
+                pass
+            elif default_registry:
+                ds_id = next(iter(default_registry))
+
+        if ds_id and ds_id in default_registry:
+            SESSIONS[session_id] = {
+                "session_id": session_id,
+                "dataset_id": ds_id,
+            }
+            logger.info("session_auto_recovered", session_id=session_id, dataset_id=ds_id)
+        else:
+            raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found")
 
     dataset_id = SESSIONS[session_id]["dataset_id"]
     event_queue: asyncio.Queue[dict[str, Any] | None] = asyncio.Queue()

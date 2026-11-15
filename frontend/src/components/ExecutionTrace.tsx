@@ -5,12 +5,14 @@ interface ExecutionTraceProps {
   trace: ToolResult[]
   isExecuting?: boolean
   currentStepMessage?: string | null
+  errorMessage?: string | null
 }
 
 export const ExecutionTrace: React.FC<ExecutionTraceProps> = ({
   trace,
   isExecuting,
   currentStepMessage,
+  errorMessage,
 }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -210,6 +212,26 @@ export const ExecutionTrace: React.FC<ExecutionTraceProps> = ({
             <div style={{ color: 'var(--accent-indigo)', fontWeight: 500 }}>
               {currentStepMessage || 'Reasoning & dispatching tool calls...'}
             </div>
+          </div>
+        )}
+
+        {/* Error notice */}
+        {errorMessage && !isExecuting && (
+          <div
+            style={{
+              padding: '12px',
+              borderRadius: 'var(--radius-sm)',
+              background: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid var(--accent-rose)',
+              color: 'var(--accent-rose)',
+              fontSize: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+          >
+            <span>⚠️</span>
+            <span>{errorMessage}</span>
           </div>
         )}
 

@@ -20,6 +20,7 @@ export const App: React.FC = () => {
   // Execution & Report state
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [currentStepMsg, setCurrentStepMsg] = useState<string | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [trace, setTrace] = useState<ToolResult[]>([])
   const [report, setReport] = useState<Report | null>(null)
   const [verification, setVerification] = useState<VerificationSummary | null>(null)
@@ -32,6 +33,7 @@ export const App: React.FC = () => {
     setTrace([])
     setVerification(null)
     setClarification(null)
+    setErrorMessage(null)
 
     // Load profile if not provided directly
     if (providedProfile) {
@@ -82,60 +84,85 @@ export const App: React.FC = () => {
     setVerification(null)
     setTrace([])
     setClarification(null)
+    setErrorMessage(null)
 
-    const cancelFn = askQuestionStream(
-      activeSessionId,
-      question,
-      (msg) => {
-        if (msg.event === 'tool_result') {
-          const toolResult = msg.data as ToolResult
-          setTrace((prev) => [...prev, toolResult])
-          setCurrentStepMsg(`Completed tool: ${toolResult.tool}`)
-        } else if (msg.event === 'report_draft') {
-          if (msg.data?.report) {
-            setReport(msg.data.report)
-          }
-          setCurrentStepMsg('Drafting findings and computing grounded evidence...')
-        } else if (msg.event === 'verification') {
-          if (msg.data?.summary) {
-            setVerification(msg.data.summary)
-          }
-          setCurrentStepMsg('Running 5-point rigorous verification rules...')
-        } else if (msg.event === 'final') {
-          if (msg.data?.run_result) {
-            const run = msg.data.run_result
-            if (run.report) setReport(run.report)
-            if (run.verification) setVerification(run.verification)
-            if (run.trace && run.trace.length > 0) {
-              setTrace(run.trace)
+    const startStreaming = (targetSessionId: string, isRetry = false) => {
+      const cancelFn = askQuestionStream(
+        targetSessionId,
+        question,
+        (msg) => {
+          if (msg.event === 'tool_result') {
+            const toolResult = msg.data as ToolResult
+            setTrace((prev) => [...prev, toolResult])
+            setCurrentStepMsg(`Completed tool: ${toolResult.tool}`)
+          } else if (msg.event === 'report_draft') {
+            if (msg.data?.report) {
+              setReport(msg.data.report)
             }
-          } else if (msg.data?.report) {
-            setReport(msg.data.report)
-            if (msg.data.verification) setVerification(msg.data.verification)
+            setCurrentStepMsg('Drafting findings and computing grounded evidence...')
+          } else if (msg.event === 'verification') {
+            if (msg.data?.summary) {
+              setVerification(msg.data.summary)
+            }
+            setCurrentStepMsg('Running 5-point rigorous verification rules...')
+          } else if (msg.event === 'final') {
+            if (msg.data?.run_result) {
+              const run = msg.data.run_result
+              if (run.report) setReport(run.report)
+              if (run.verification) setVerification(run.verification)
+              if (run.trace && run.trace.length > 0) {
+                setTrace(run.trace)
+              }
+            } else if (msg.data?.report) {
+              setReport(msg.data.report)
+              if (msg.data.verification) setVerification(msg.data.verification)
+            }
+            setIsAnalyzing(false)
+            setCurrentStepMsg(null)
+          } else if (msg.event === 'clarification_needed') {
+            setClarification(msg.data?.message || 'Further dataset clarification required.')
+            setIsAnalyzing(false)
+            setCurrentStepMsg(null)
+          } else if (msg.event === 'error') {
+            const errMsg = msg.data?.error || msg.data?.message || JSON.stringify(msg.data)
+            setErrorMessage(errMsg)
+            setCurrentStepMsg(`Error: ${errMsg}`)
+            setIsAnalyzing(false)
           }
+        },
+        () => {
           setIsAnalyzing(false)
           setCurrentStepMsg(null)
-        } else if (msg.event === 'clarification_needed') {
-          setClarification(msg.data?.message || 'Further dataset clarification required.')
+        },
+        async (err) => {
+          // If session expired or missing, auto-recreate once and retry
+          if (
+            !isRetry &&
+            selectedDatasetId &&
+            (err?.message?.includes('404') || err?.message?.includes('Session'))
+          ) {
+            try {
+              setCurrentStepMsg('Re-establishing analytical session...')
+              const sess = await createSession(selectedDatasetId)
+              setSessionId(sess.session_id)
+              startStreaming(sess.session_id, true)
+              return
+            } catch (reErr) {
+              console.error('Session reconnection failed:', reErr)
+            }
+          }
+          console.error('SSE Stream error:', err)
+          const errText = err?.message || 'Analysis connection interrupted.'
+          setErrorMessage(errText)
           setIsAnalyzing(false)
-          setCurrentStepMsg(null)
-        } else if (msg.event === 'error') {
-          setCurrentStepMsg(`Error: ${msg.data?.message || JSON.stringify(msg.data)}`)
-          setIsAnalyzing(false)
-        }
-      },
-      () => {
-        setIsAnalyzing(false)
-        setCurrentStepMsg(null)
-      },
-      (err) => {
-        console.error('SSE Stream error:', err)
-        setIsAnalyzing(false)
-        setCurrentStepMsg('Analysis connection interrupted.')
-      }
-    )
+          setCurrentStepMsg(`Error: ${errText}`)
+        },
+        selectedDatasetId
+      )
+      setCancelStream(() => cancelFn)
+    }
 
-    setCancelStream(() => cancelFn)
+    startStreaming(activeSessionId)
   }
 
   const handleCancel = () => {
@@ -228,7 +255,13 @@ export const App: React.FC = () => {
               onCancel={handleCancel}
               clarificationMessage={clarification}
             />
-            <ReportView report={report} verification={verification} trace={trace} />
+            <ReportView
+              report={report}
+              verification={verification}
+              trace={trace}
+              isAnalyzing={isAnalyzing}
+              errorMessage={errorMessage}
+            />
           </section>
 
           {/* Right Column: Execution Trace Timeline */}
@@ -237,6 +270,7 @@ export const App: React.FC = () => {
               trace={trace}
               isExecuting={isAnalyzing}
               currentStepMessage={currentStepMsg}
+              errorMessage={errorMessage}
             />
           </aside>
         </main>

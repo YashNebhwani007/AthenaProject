@@ -66,56 +66,82 @@ export function askQuestionStream(
   question: string,
   onEvent: (msg: SSEMessage) => void,
   onComplete?: () => void,
-  onError?: (err: any) => void
+  onError?: (err: any) => void,
+  datasetId?: string | null
 ): () => void {
   const controller = new AbortController()
 
   fetch(`${API_BASE}/sessions/${sessionId}/ask`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ question }),
+    body: JSON.stringify({ question, dataset_id: datasetId }),
     signal: controller.signal,
   })
     .then(async (response) => {
       if (!response.ok || !response.body) {
-        throw new Error('Streaming connection failed')
+        const errorText = await response.text().catch(() => '')
+        let message = `Streaming connection failed (HTTP ${response.status})`
+        try {
+          const parsed = JSON.parse(errorText)
+          if (parsed.detail) message = parsed.detail
+        } catch {}
+        throw new Error(message)
       }
 
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
       let buffer = ''
 
+      const processBlock = (block: string) => {
+        if (!block.trim()) return
+        let eventType = 'message'
+        let dataStr = ''
+
+        for (const line of block.split('\n')) {
+          const trimmed = line.trim()
+          if (trimmed.startsWith('event:')) {
+            eventType = trimmed.slice(6).trim()
+          } else if (trimmed.startsWith('data:')) {
+            const val = trimmed.slice(5).trim()
+            dataStr = dataStr ? `${dataStr}\n${val}` : val
+          }
+        }
+
+        if (dataStr) {
+          try {
+            const parsedData = JSON.parse(dataStr)
+            onEvent({ event: eventType as any, data: parsedData })
+          } catch {
+            onEvent({ event: eventType as any, data: dataStr })
+          }
+        }
+      }
+
       while (true) {
         const { value, done } = await reader.read()
         if (done) break
 
         buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n\n')
-        buffer = lines.pop() || ''
+        // Normalize CRLF (\r\n) and CR (\r) to LF (\n) so \n\n splitting reliably finds SSE blocks
+        const normalized = buffer.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+        const blocks = normalized.split('\n\n')
+        // Last block may be incomplete until next read
+        buffer = blocks.pop() || ''
 
-        for (const block of lines) {
-          if (!block.trim()) continue
-          let eventType = 'message'
-          let dataStr = ''
-
-          for (const line of block.split('\n')) {
-            if (line.startsWith('event:')) {
-              eventType = line.replace('event:', '').trim()
-            } else if (line.startsWith('data:')) {
-              dataStr = line.replace('data:', '').trim()
-            }
-          }
-
-          if (dataStr) {
-            try {
-              const parsedData = JSON.parse(dataStr)
-              onEvent({ event: eventType as any, data: parsedData })
-            } catch {
-              onEvent({ event: eventType as any, data: dataStr })
-            }
-          }
+        for (const block of blocks) {
+          processBlock(block)
         }
       }
+
+      // Process any trailing complete block left in buffer
+      if (buffer.trim()) {
+        const normalized = buffer.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+        const blocks = normalized.split('\n\n')
+        for (const block of blocks) {
+          processBlock(block)
+        }
+      }
+
       onComplete?.()
     })
     .catch((err) => {

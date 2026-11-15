@@ -102,3 +102,21 @@ async def test_session_lifecycle_and_runs(client: httpx.AsyncClient, monkeypatch
     res_run = await client.get("/api/runs/run_test123")
     assert res_run.status_code == 200
     assert res_run.json()["run_id"] == "run_test123"
+
+
+@pytest.mark.asyncio
+async def test_ask_question_auto_recovers_stale_session(client: httpx.AsyncClient, monkeypatch):
+    """Verify ask endpoint auto-recovers session if session_id is missing from memory."""
+    monkeypatch.setattr("athena.agent.orchestrator.create_llm_client", lambda _c: MockApiLLM())
+
+    csv_path = Path("tests/fixtures/test_data.csv").resolve()
+    default_registry.register("recover_test_ds", csv_path)
+
+    # Use a non-existent session_id but pass dataset_id
+    res_ask = await client.post(
+        "/api/sessions/sess_stale_1234/ask",
+        json={"question": "What is churn?", "dataset_id": "recover_test_ds"},
+    )
+    assert res_ask.status_code == 200
+    assert "text/event-stream" in res_ask.headers["content-type"]
+    assert "sess_stale_1234" in SESSIONS

@@ -8,13 +8,45 @@ interface ReportViewProps {
   report: Report | null
   verification: VerificationSummary | null
   trace: ToolResult[]
+  isAnalyzing?: boolean
+  errorMessage?: string | null
 }
 
 export const ReportView: React.FC<ReportViewProps> = ({
   report,
   verification,
   trace,
+  isAnalyzing,
+  errorMessage,
 }) => {
+  if (isAnalyzing && !report) {
+    return (
+      <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
+        <div className="pulse" style={{ fontSize: '32px', marginBottom: '12px' }}>⚡</div>
+        <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--accent-indigo)' }}>
+          Analysis in Progress...
+        </h3>
+        <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
+          Autonomous agent is executing tools, testing hypotheses, and verifying evidence.
+        </p>
+      </div>
+    )
+  }
+
+  if (errorMessage && !report) {
+    return (
+      <div className="card" style={{ padding: '30px', textAlign: 'center', borderColor: 'var(--accent-rose)' }}>
+        <div style={{ fontSize: '32px', marginBottom: '12px' }}>⚠️</div>
+        <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--accent-rose)' }}>
+          Analysis Error
+        </h3>
+        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '6px' }}>
+          {errorMessage}
+        </p>
+      </div>
+    )
+  }
+
   if (!report) {
     return (
       <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
