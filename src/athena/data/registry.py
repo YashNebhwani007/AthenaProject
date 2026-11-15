@@ -66,6 +66,15 @@ class DatasetRegistry:
             msg = f"Unsupported file format: {suffix}. Supported formats: .csv, .parquet"
             raise ValueError(msg)
 
+        clean_alias = dataset_id.replace("-", "_")
+        if clean_alias != tbl_name:
+            try:
+                conn.execute(
+                    f'CREATE VIEW IF NOT EXISTS "{clean_alias}" AS SELECT * FROM "{tbl_name}"'
+                )
+            except Exception as e:
+                logger.debug("alias_view_creation_failed", error=str(e))
+
         self._datasets[dataset_id] = handle
         self._connections[dataset_id] = conn
         logger.info(

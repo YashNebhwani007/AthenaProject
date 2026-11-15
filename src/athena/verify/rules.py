@@ -52,12 +52,17 @@ def check_v1_numeric_grounding(
                 (tr.tool, m.name),
             ]
             if "_" in m.name:
-                suffix = m.name.split("_")[-1]
-                keys_to_add.extend([
-                    (tr.id, suffix),
-                    (f"t{idx}", suffix),
-                    (tr.tool, suffix),
-                ])
+                parts = m.name.split("_")
+                keys_to_add.extend(
+                    [
+                        (tr.id, parts[-1]),
+                        (f"t{idx}", parts[-1]),
+                        (tr.tool, parts[-1]),
+                        (tr.id, "_".join(parts[1:])),
+                        (f"t{idx}", "_".join(parts[1:])),
+                        (tr.tool, "_".join(parts[1:])),
+                    ]
+                )
             for k in keys_to_add:
                 if k not in metrics_map:
                     metrics_map[k] = m.value
@@ -106,6 +111,17 @@ def check_v1_numeric_grounding(
             val = metrics_map.get((ev.tool_result_id, ev.metric))
             if val is not None and isinstance(val, (int, float)):
                 evidence_metrics.append(float(val))
+
+            for tr in tool_results:
+                if tr.id == ev.tool_result_id or tr.tool == ev.tool_result_id:
+                    for m in tr.metrics:
+                        if isinstance(m.value, (int, float)) and not isinstance(m.value, bool):
+                            evidence_metrics.append(float(m.value))
+                    if tr.tool == "run_sql" and isinstance(tr.output, dict):
+                        for row in tr.output.get("rows", []):
+                            for cell in row:
+                                if isinstance(cell, (int, float)) and not isinstance(cell, bool):
+                                    evidence_metrics.append(float(cell))
 
         for num_str in raw_numbers:
             is_pct = num_str.endswith("%")

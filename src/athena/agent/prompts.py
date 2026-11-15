@@ -29,6 +29,12 @@ SYSTEM_PROMPT = """You are Athena, an autonomous Data Science & Decision Intelli
 6. TOOL SELECTION: Use deterministic tools to analyze data. For statistical
    hypothesis testing, run `recommend_test` first to check assumptions before
    calling `stats_test`.
+7. SUBGROUP BREAKDOWNS & SQL QUERIES: To answer questions about subgroups,
+   relationships between columns, aggregations, cross-tabulations, or conditional
+   rates (e.g., survival by gender, churn by contract), ALWAYS execute SQL queries
+   using `run_sql` (e.g. `SELECT <cat>, COUNT(*), AVG(<metric>) FROM <tbl> GROUP BY <cat>`).
+   SQL querying is fully enabled, active, safe, and unrestricted for SELECT queries.
+   NEVER claim SQL querying is restricted.
 
 # FINAL REPORT FORMAT
 When you have collected sufficient evidence to answer the user's question,
@@ -73,8 +79,9 @@ def build_tool_schemas() -> list[dict[str, Any]]:
             "function": {
                 "name": "run_sql",
                 "description": (
-                    "Execute a validated, read-only SELECT query against the dataset. "
-                    "Use DuckDB SQL dialect."
+                    "Execute a validated, read-only DuckDB SQL query against the dataset table. "
+                    "Always use this tool to calculate subgroup counts, conditional rates, "
+                    "cross-tabulations, and aggregations (e.g. GROUP BY, WHERE, COUNT, AVG)."
                 ),
                 "parameters": {
                     "type": "object",
@@ -224,8 +231,14 @@ def build_context_message(handle: DatasetHandle, profile_result: ToolResult | No
             lines.append(f"\n- Suspected target columns: {', '.join(suspected_targets)}")
 
     lines.append(
+        f"\nTo compute subgroup breakdowns, conditional rates, or aggregations, run SQL queries "
+        f"using `run_sql` against table `{handle.table_name}`. For hypothesis tests, use "
+        f"`recommend_test` and `stats_test`."
+    )
+    lines.append(
         "\nBegin by formulating an analytical plan and calling deterministic tools "
-        "to gather verified evidence before drafting your final Report JSON."
+        "(e.g., run_sql, recommend_test, stats_test) to gather verified evidence "
+        "before drafting your final Report JSON."
     )
     return "\n".join(lines)
 

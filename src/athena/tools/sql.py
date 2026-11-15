@@ -1,6 +1,7 @@
 """SQL execution tool running validated queries against hardened DuckDB connections."""
 
 import asyncio
+import re
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
@@ -29,6 +30,61 @@ def _clean_val(v: Any) -> Any:
     if isinstance(v, (datetime, date)):
         return v.isoformat()
     return v
+
+
+def _extract_sql_metrics(columns: list[str], rows: list[list[Any]]) -> list[Metric]:
+    """Deterministically extract structured numeric metrics from query result rows."""
+    metrics: list[Metric] = [
+        Metric(name="total_rows", value=len(rows), unit="rows"),
+        Metric(name="columns_returned", value=len(columns), unit="columns"),
+    ]
+    if not rows or not columns:
+        return metrics
+
+    # Identify numeric and label columns
+    numeric_col_indices: list[int] = []
+    label_col_indices: list[int] = []
+    for idx, _ in enumerate(columns):
+        is_num = False
+        for r in rows:
+            val = r[idx]
+            if val is not None:
+                if isinstance(val, (int, float)) and not isinstance(val, bool):
+                    is_num = True
+                break
+        if is_num:
+            numeric_col_indices.append(idx)
+        else:
+            label_col_indices.append(idx)
+
+    # 1. Single row result (e.g. scalar or aggregated query)
+    if len(rows) == 1:
+        row = rows[0]
+        for c_idx in numeric_col_indices:
+            col_name = str(columns[c_idx]).lower().replace(" ", "_")
+            val = row[c_idx]
+            if val is not None:
+                metrics.append(Metric(name=col_name, value=val))
+        return metrics
+
+    # 2. Multi-row result (up to 50 rows)
+    if len(rows) <= 50:
+        for r_idx, row in enumerate(rows):
+            labels = [
+                re.sub(r"[^a-zA-Z0-9_]+", "_", str(row[l_idx]).strip().lower())
+                for l_idx in label_col_indices
+                if row[l_idx] is not None
+            ]
+            prefix = "_".join(labels) if labels else f"row_{r_idx}"
+
+            for c_idx in numeric_col_indices:
+                col_name = str(columns[c_idx]).lower().replace(" ", "_")
+                val = row[c_idx]
+                if val is not None:
+                    metric_name = f"{prefix}_{col_name}" if prefix else col_name
+                    metrics.append(Metric(name=metric_name, value=val))
+
+    return metrics
 
 
 @register_tool("run_sql")
@@ -96,10 +152,7 @@ async def run_sql(
         "query": executable_sql,
     }
 
-    metrics = [
-        Metric(name="total_rows", value=total_rows, unit="rows"),
-        Metric(name="columns_returned", value=len(columns), unit="columns"),
-    ]
+    metrics = _extract_sql_metrics(columns, rows)
 
     return ToolResult(
         id="",
