@@ -272,3 +272,120 @@ async def train_model(
         metrics=metric_objs,
         artifacts=artifact_objs,
     )
+
+
+@register_tool("predict_model")
+@tool_fn("predict_model")
+async def predict_model(
+    features: dict[str, Any],
+    dataset_id: str,
+    model_id: str | None = None,
+    target_col: str | None = None,
+    registry: DatasetRegistry | None = None,
+    app_settings: Settings | None = None,
+) -> ToolResult:
+    """Generate predictions and probabilities for hypothetical or new feature inputs."""
+    from athena.tools.profile import profile_dataset
+
+    cfg = app_settings or global_settings
+    reg = registry or default_registry
+    model_dir = Path(cfg.data_dir) / "models"
+
+    resolved_model_path: Path | None = None
+    if model_id:
+        cand = model_dir / f"{model_id}.pkl"
+        if cand.exists():
+            resolved_model_path = cand
+        elif Path(model_id).exists():
+            resolved_model_path = Path(model_id)
+
+    if not resolved_model_path or not resolved_model_path.exists():
+        if model_dir.exists():
+            model_files = sorted(
+                model_dir.glob("*.pkl"), key=lambda p: p.stat().st_mtime, reverse=True
+            )
+            if model_files:
+                resolved_model_path = model_files[0]
+                model_id = resolved_model_path.stem
+
+    if not resolved_model_path or not resolved_model_path.exists():
+        if not target_col:
+            prof = await profile_dataset(dataset_id=dataset_id, registry=reg)
+            suspected = prof.output.get("suspected_targets", []) if prof.output else []
+            if suspected:
+                target_col = suspected[0]
+            else:
+                raise ValueError("No model_id found and target_col not specified to train a model.")
+        train_res = await train_model(
+            target_col=target_col, dataset_id=dataset_id, registry=reg, app_settings=cfg
+        )
+        model_id = train_res.output["model_id"]
+        resolved_model_path = model_dir / f"{model_id}.pkl"
+
+    with open(resolved_model_path, "rb") as f:
+        pipeline = pickle.load(f)
+
+    input_df = pd.DataFrame([features])
+
+    if hasattr(pipeline, "named_steps") and "preprocessor" in pipeline.named_steps:
+        prep = pipeline.named_steps["preprocessor"]
+        if hasattr(prep, "feature_names_in_"):
+            expected_cols = list(prep.feature_names_in_)
+            col_map = {c.lower(): c for c in expected_cols}
+            renamed_features = {}
+            for k, v in features.items():
+                if k.lower() in col_map:
+                    renamed_features[col_map[k.lower()]] = v
+                else:
+                    renamed_features[k] = v
+            row_data = {c: renamed_features.get(c, np.nan) for c in expected_cols}
+            input_df = pd.DataFrame([row_data])
+
+    raw_pred = pipeline.predict(input_df)[0]
+    if isinstance(raw_pred, (np.integer, int)):
+        pred_val: Any = int(raw_pred)
+    elif isinstance(raw_pred, (np.floating, float)):
+        pred_val = float(raw_pred)
+    else:
+        pred_val = str(raw_pred)
+
+    proba_val: float | None = None
+    if hasattr(pipeline, "predict_proba"):
+        try:
+            probas = pipeline.predict_proba(input_df)[0]
+            if len(probas) == 2:
+                proba_val = round(float(probas[1]), 4)
+            else:
+                proba_val = round(float(max(probas)), 4)
+        except Exception:
+            pass
+
+    metrics = [
+        Metric(name="prediction", value=pred_val, unit=""),
+    ]
+    if proba_val is not None:
+        metrics.append(Metric(name="probability", value=proba_val, unit=""))
+        metrics.append(
+            Metric(name="probability_percent", value=round(proba_val * 100, 2), unit="%")
+        )
+
+    for k, v in features.items():
+        if isinstance(v, (int, float)) and not isinstance(v, bool):
+            metrics.append(Metric(name=f"input_{k}", value=v, unit=""))
+
+    output_payload = {
+        "model_id": model_id,
+        "features": features,
+        "prediction": pred_val,
+        "probability": proba_val,
+        "probability_percent": round(proba_val * 100, 2) if proba_val is not None else None,
+    }
+
+    return ToolResult(
+        id="",
+        tool="predict_model",
+        args={"features": features, "model_id": model_id, "dataset_id": dataset_id},
+        status=ToolStatus.ok,
+        output=output_payload,
+        metrics=metrics,
+    )

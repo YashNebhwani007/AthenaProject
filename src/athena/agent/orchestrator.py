@@ -250,6 +250,14 @@ class Orchestrator:
                     # Inject registry
                     kwargs["registry"] = self.registry
 
+                    # Normalize common argument aliases
+                    if "target" in kwargs and "target_col" not in kwargs:
+                        kwargs["target_col"] = kwargs.pop("target")
+                    if "plot_type" in kwargs and "chart_type" not in kwargs:
+                        kwargs["chart_type"] = kwargs.pop("plot_type")
+                    if "inputs" in kwargs and "features" not in kwargs:
+                        kwargs["features"] = kwargs.pop("inputs")
+
                     try:
                         tool_res = await tool_func(**kwargs)
                     except Exception as exc:

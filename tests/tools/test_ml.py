@@ -7,7 +7,7 @@ import pytest
 
 from athena.data import DatasetRegistry
 from athena.schemas import ToolStatus
-from athena.tools.ml import train_model
+from athena.tools.ml import predict_model, train_model
 
 
 @pytest.fixture
@@ -78,3 +78,55 @@ async def test_train_model_regression(ml_registry: DatasetRegistry):
     assert "r2" in metrics
     assert metrics["r2"] > 0.40
     assert metrics["rmse"] < 1.0
+
+
+@pytest.mark.asyncio
+async def test_predict_model_classification(ml_registry: DatasetRegistry):
+    """Verify predict_model produces prediction and probability for classification sample."""
+    train_res = await train_model(
+        target_col="churn",
+        dataset_id="churn_ds",
+        registry=ml_registry,
+    )
+    model_id = train_res.output["model_id"]
+
+    sample_features = {
+        "tenure": 2,
+        "monthly_charges": 85.5,
+        "contract": "Month-to-month",
+        "tech_support": "No",
+    }
+    pred_res = await predict_model(
+        features=sample_features,
+        model_id=model_id,
+        dataset_id="churn_ds",
+        registry=ml_registry,
+    )
+
+    assert pred_res.status == ToolStatus.ok
+    assert pred_res.tool == "predict_model"
+    assert "prediction" in pred_res.output
+    assert pred_res.output["prediction"] in (0, 1)
+    assert pred_res.output["probability"] is not None
+    assert 0.0 <= pred_res.output["probability"] <= 1.0
+    assert any(m.name == "probability_percent" for m in pred_res.metrics)
+
+
+@pytest.mark.asyncio
+async def test_predict_model_auto_train(ml_registry: DatasetRegistry):
+    """Verify predict_model auto-trains model if model_id is omitted."""
+    sample_features = {
+        "tenure": 60,
+        "monthly_charges": 20.0,
+        "contract": "Two year",
+    }
+    pred_res = await predict_model(
+        features=sample_features,
+        target_col="churn",
+        dataset_id="churn_ds",
+        registry=ml_registry,
+    )
+
+    assert pred_res.status == ToolStatus.ok
+    assert "prediction" in pred_res.output
+    assert pred_res.output["prediction"] in (0, 1)
