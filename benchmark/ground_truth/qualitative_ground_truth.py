@@ -30,6 +30,15 @@ def compute_refusal_03(_dataset_path: str) -> dict[str, Any]:
     }
 
 
+def compute_refusal_04(_dataset_path: str) -> dict[str, Any]:
+    return {
+        "question_id": "refusal_04",
+        "expected_answer_type": "refusal",
+        "answerable": False,
+        "reason": "Future stock market asset prices cannot be derived from customer churn records",
+    }
+
+
 def compute_causal_01(_dataset_path: str) -> dict[str, Any]:
     return {
         "question_id": "causal_01",
@@ -50,6 +59,17 @@ def compute_causal_02(_dataset_path: str) -> dict[str, Any]:
         "reason": (
             "Working hours correlate with income but unobserved confounders "
             "prevent causal claims"
+        ),
+    }
+
+
+def compute_causal_03(_dataset_path: str) -> dict[str, Any]:
+    return {
+        "question_id": "causal_03",
+        "expected_answer_type": "causal_caveat",
+        "requires_causal_caveat": True,
+        "reason": (
+            "Paperless billing adoption is confounded by demographic and contract preferences"
         ),
     }
 
