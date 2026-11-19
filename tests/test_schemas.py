@@ -194,3 +194,26 @@ def test_report_normalization_nested_and_aliases():
     assert len(report.recommendations) == 1
     assert report.recommendations[0].text == "Ensure lifeboats prioritize safety."
     assert report.recommendations[0].confidence == Confidence.high
+
+
+def test_tool_result_empty_metrics_and_artifacts_serialization():
+    """Verify ToolResult serializes and deserializes cleanly with empty collections."""
+    tr = ToolResult(
+        id="empty_t",
+        tool="custom_tool",
+        args={},
+        status=ToolStatus.ok,
+        output={"empty": True},
+        metrics=[],
+        artifacts=[],
+        warnings=[],
+    )
+    dumped = tr.model_dump()
+    assert dumped["metrics"] == []
+    assert dumped["artifacts"] == []
+    assert dumped["warnings"] == []
+
+    parsed = ToolResult.model_validate(dumped)
+    assert parsed.id == "empty_t"
+    assert parsed.metrics == []
+    assert parsed.artifacts == []
