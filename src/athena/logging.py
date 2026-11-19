@@ -44,12 +44,18 @@ def configure_logging(level_name: str | None = None) -> None:
 configure_logging()
 
 
-def get_logger(name: str | None = None, **initial_values: Any) -> Any:
-    """Return a bound structlog logger.
+def get_logger(
+    name: str | None = None,
+    **initial_values: Any,
+) -> structlog.stdlib.BoundLogger:
+    """Return a bound structlog logger configured for JSON serialization.
 
     Args:
         name: Logger name (typically __name__).
         **initial_values: Key-value context pairs to bind to the logger.
+
+    Returns:
+        Configured BoundLogger instance with pre-bound contextual fields.
     """
     logger = structlog.get_logger(name)
     if name:
