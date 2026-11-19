@@ -1,0 +1,28 @@
+version: "3.8"
+
+services:
+  athena-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: athena-agent
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - ATHENA_DEMO_MODE=true
+      - ATHENA_LOG_LEVEL=INFO
+      - ATHENA_DATA_DIR=/app/data
+    volumes:
+      - athena-data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  athena-data:
+    driver: local
