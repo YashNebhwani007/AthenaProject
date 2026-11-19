@@ -415,6 +415,36 @@ def test_v4_valid_linkage_passes():
     assert all(r.passed for r in res)
 
 
+def test_v4_recommendation_with_multiple_valid_findings_passes():
+    tr = make_tool_result("t1", "profile", [Metric(name="m", value=1, unit="")])
+    f1 = Finding(
+        id="f1",
+        text="Finding 1.",
+        claim_type=ClaimType.descriptive,
+        evidence=[EvidenceRef(tool_result_id="t1", metric="m")],
+    )
+    f2 = Finding(
+        id="f2",
+        text="Finding 2.",
+        claim_type=ClaimType.descriptive,
+        evidence=[EvidenceRef(tool_result_id="t1", metric="m")],
+    )
+    f3 = Finding(
+        id="f3",
+        text="Finding 3.",
+        claim_type=ClaimType.descriptive,
+        evidence=[EvidenceRef(tool_result_id="t1", metric="m")],
+    )
+    rec = Recommendation(
+        text="Multi-evidence action.",
+        supported_by=["f1", "f2", "f3"],
+        confidence=Confidence.high,
+    )
+    rep = Report(question="Q", tldr="tl", findings=[f1, f2, f3], recommendations=[rec])
+    res = check_v4_linkage(rep, [tr])
+    assert all(r.passed for r in res)
+
+
 def test_v4_finding_missing_evidence_fails():
     finding = Finding(id="f1", text="No evidence.", claim_type=ClaimType.descriptive, evidence=[])
     rep = Report(question="Q", tldr="tl", findings=[finding], recommendations=[])
