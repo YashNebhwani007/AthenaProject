@@ -425,6 +425,44 @@ def test_v4_recommendation_citing_unknown_finding_fails():
     assert any(not r.passed for r in res)
 
 
+def test_v4_multiple_recommendations_all_valid_passes():
+    tr = make_tool_result("t1", "profile", [Metric(name="m", value=1, unit="")])
+    f1 = Finding(
+        id="f1",
+        text="Finding one.",
+        claim_type=ClaimType.descriptive,
+        evidence=[EvidenceRef(tool_result_id="t1", metric="m")],
+    )
+    f2 = Finding(
+        id="f2",
+        text="Finding two.",
+        claim_type=ClaimType.descriptive,
+        evidence=[EvidenceRef(tool_result_id="t1", metric="m")],
+    )
+    r1 = Recommendation(text="Action A.", supported_by=["f1"], confidence=Confidence.high)
+    r2 = Recommendation(text="Action B.", supported_by=["f1", "f2"], confidence=Confidence.medium)
+    rep = Report(question="Q", tldr="tl", findings=[f1, f2], recommendations=[r1, r2])
+    res = check_v4_linkage(rep, [tr])
+    assert all(r.passed for r in res)
+
+
+def test_v4_multiple_recommendations_one_invalid_fails():
+    tr = make_tool_result("t1", "profile", [Metric(name="m", value=1, unit="")])
+    f1 = Finding(
+        id="f1",
+        text="Finding one.",
+        claim_type=ClaimType.descriptive,
+        evidence=[EvidenceRef(tool_result_id="t1", metric="m")],
+    )
+    r1 = Recommendation(text="Valid rec.", supported_by=["f1"], confidence=Confidence.high)
+    r2 = Recommendation(
+        text="Invalid rec.", supported_by=["non_existent"], confidence=Confidence.low
+    )
+    rep = Report(question="Q", tldr="tl", findings=[f1], recommendations=[r1, r2])
+    res = check_v4_linkage(rep, [tr])
+    assert any(not r.passed for r in res)
+
+
 # -------------------------------------------------------------
 # Rule V5 Tests: Data Quality Propagation
 # -------------------------------------------------------------
