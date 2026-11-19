@@ -33,7 +33,17 @@ async def run_benchmark(
     question_filter: str = "smoke",
     output_dir: Path | None = None,
 ) -> dict[str, Any]:
-    """Execute evaluation benchmark across systems and record scores."""
+    """Execute evaluation benchmark across systems and record scores.
+
+    Args:
+        systems: List of system identifier strings ('A1', 'A2', 'B1').
+        repeats: Number of evaluation iterations per question.
+        question_filter: Question subset selector ('smoke' or 'all').
+        output_dir: Optional destination path for benchmark results and reports.
+
+    Returns:
+        Structured evaluation payload containing timestamps, summaries, and traces.
+    """
     root = Path(__file__).parent
     out_dir = output_dir or (root / "results")
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -48,9 +58,7 @@ async def run_benchmark(
     with open(manifest_file, encoding="utf-8") as f:
         manifest = json.load(f)["datasets"]
 
-    dataset_map = {
-        ds["id"]: str((root.parent / ds["path"]).resolve()) for ds in manifest
-    }
+    dataset_map = {ds["id"]: str((root.parent / ds["path"]).resolve()) for ds in manifest}
 
     expected_gt = generate_all_ground_truth(root)
 
@@ -122,12 +130,14 @@ async def run_benchmark(
 
                 latency_ms = round((time.time() - start_t) * 1000, 2)
                 score = score_question(predicted_val, gt)
-                score.update({
-                    "system": sys_name,
-                    "repeat": repeat_idx + 1,
-                    "tokens": tokens_used,
-                    "runtime_ms": latency_ms,
-                })
+                score.update(
+                    {
+                        "system": sys_name,
+                        "repeat": repeat_idx + 1,
+                        "tokens": tokens_used,
+                        "runtime_ms": latency_ms,
+                    }
+                )
                 sys_results.append(score)
 
         benchmark_records[sys_name] = sys_results
@@ -145,7 +155,7 @@ async def run_benchmark(
         json.dump(results_payload, f, indent=2)
 
     # 3. Generate Markdown results table
-    date_str = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
+    date_str = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
     md_lines = [
         "# Athena Benchmark Evaluation Results\n",
         f"**Date:** {date_str} | **Mode:** {question_filter}\n",
