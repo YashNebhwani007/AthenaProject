@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 from athena.data.registry import DatasetRegistry
+from athena.tools.leakage import check_leakage
 from athena.tools.profile import profile_dataset
 from athena.tools.sql import run_sql
 
@@ -31,6 +32,11 @@ def create_parser() -> argparse.ArgumentParser:
     p_query.add_argument("file", type=str, help="Path to CSV or Parquet file")
     p_query.add_argument("--sql", type=str, required=True, help="SQL query to execute")
     p_query.add_argument("--limit", type=int, default=50, help="Max rows to return")
+
+    # Command: audit-leakage
+    p_audit = subparsers.add_parser("audit-leakage", help="Audit dataset for target leakage")
+    p_audit.add_argument("file", type=str, help="Path to CSV or Parquet file")
+    p_audit.add_argument("--target", type=str, required=True, help="Target feature name")
 
     return parser
 
@@ -94,6 +100,37 @@ async def run_query(file_path: str, sql: str, limit: int = 50) -> int:
     return 0 if res.status.value == "ok" else 1
 
 
+async def run_audit_leakage(file_path: str, target: str) -> int:
+    """Audit dataset for target leakage risks across 6 heuristic checks."""
+    path = Path(file_path).resolve()
+    if not path.exists():
+        sys.stderr.write(f"Error: Dataset file '{path}' not found.\n")
+        return 1
+
+    registry = DatasetRegistry()
+    ds_id = "cli_ds"
+    registry.register(dataset_id=ds_id, file_path=path)
+
+    res = await check_leakage(target_col=target, dataset_id=ds_id, registry=registry)
+    out = res.output
+
+    print(f"Leakage Audit Report: {path.name} (target='{target}')")
+    print(f"Has Leakage: {'YES' if out.get('has_leakage') else 'NO'}")
+    print(f"Max Severity: {out.get('max_severity', 'none').upper()}")
+
+    findings = out.get("findings", [])
+    if findings:
+        print("\nFindings:")
+        for f in findings:
+            sev = f.get("severity", "none").upper()
+            col = f.get("column", "all")
+            print(f"  [{sev}] {col}: {f.get('detail')}")
+    else:
+        print("\nNo leakage risks detected.")
+
+    return 0 if res.status.value == "ok" else 1
+
+
 def main(args: list[str] | None = None) -> None:
     """CLI execution entrypoint."""
     parser = create_parser()
@@ -104,6 +141,9 @@ def main(args: list[str] | None = None) -> None:
         sys.exit(exit_code)
     elif parsed.command == "query":
         exit_code = asyncio.run(run_query(parsed.file, sql=parsed.sql, limit=parsed.limit))
+        sys.exit(exit_code)
+    elif parsed.command == "audit-leakage":
+        exit_code = asyncio.run(run_audit_leakage(parsed.file, target=parsed.target))
         sys.exit(exit_code)
     else:
         parser.print_help()
