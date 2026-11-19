@@ -244,6 +244,19 @@ def test_v2_weak_correlation_claiming_strong_fails():
     assert any(not r.passed for r in res)
 
 
+def test_v2_negative_correlation_claiming_positive_fails():
+    tr = make_tool_result("t1", "stats_test", [Metric(name="pearson_r", value=-0.75, unit="")])
+    finding = Finding(
+        id="f1",
+        text="There is a strong positive correlation between charges and tenure.",
+        claim_type=ClaimType.statistical,
+        evidence=[EvidenceRef(tool_result_id="t1", metric="pearson_r")],
+    )
+    rep = Report(question="Q", tldr="tl", findings=[finding])
+    res = check_v2_claim_evidence_consistency(rep, [tr])
+    assert any(not r.passed for r in res)
+
+
 def test_v2_predictive_claim_missing_metrics_fails():
     tr = make_tool_result("t1", "predict_model", [Metric(name="samples", value=100, unit="")])
     finding = Finding(
