@@ -11,7 +11,7 @@ from athena.api.routes import router
 app = FastAPI(
     title="Athena AI — Autonomous Data Science Agent",
     description="Statistical rigor, automated verification, and evidence-grounded insights.",
-    version="0.2.0",
+    version="0.3.0",
 )
 
 # CORS Middleware
@@ -30,7 +30,7 @@ app.include_router(router)
 @app.get("/health")
 def health_check() -> dict[str, str]:
     """Health check endpoint for deployment monitoring."""
-    return {"status": "ok", "version": "0.2.0"}
+    return {"status": "ok", "version": "0.3.0"}
 
 
 # Serve built frontend static files if present
