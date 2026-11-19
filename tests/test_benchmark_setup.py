@@ -64,3 +64,21 @@ def test_ground_truth_generation():
 
     assert "leakage_01" in results
     assert results["leakage_01"]["leakage_detected"] is True
+
+
+def test_benchmark_questions_unique_ids_and_fields():
+    """Verify all questions have unique IDs, non-empty prompts, and valid dataset keys."""
+    q_file = Path(__file__).parent.parent / "benchmark" / "questions" / "questions.json"
+    with open(q_file, encoding="utf-8") as f:
+        data = json.load(f)
+
+    questions = data["questions"]
+    seen_ids = set()
+    for q in questions:
+        assert "id" in q and q["id"], "Question must have non-empty ID"
+        assert q["id"] not in seen_ids, f"Duplicate question ID found: {q['id']}"
+        seen_ids.add(q["id"])
+
+        assert "question" in q and len(q["question"]) > 5
+        assert "dataset_id" in q and q["dataset_id"]
+        assert "category" in q and q["category"]
