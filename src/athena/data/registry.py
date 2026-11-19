@@ -91,17 +91,44 @@ class DatasetRegistry:
         return dataset_id in self._datasets
 
     def has(self, dataset_id: str) -> bool:
-        """Check if dataset ID is registered."""
+        """Check if dataset ID is registered.
+
+        Args:
+            dataset_id: Unique string identifier for the dataset.
+
+        Returns:
+            True if the dataset is actively loaded and registered, False otherwise.
+        """
         return dataset_id in self._datasets
 
     def get(self, dataset_id: str) -> DatasetHandle:
-        """Retrieve dataset handle by ID."""
+        """Retrieve dataset handle by ID.
+
+        Args:
+            dataset_id: Target dataset identifier.
+
+        Returns:
+            DatasetHandle containing metadata, columns, and DuckDB table name.
+
+        Raises:
+            KeyError: If the dataset ID is not registered.
+        """
         if dataset_id not in self._datasets:
             raise KeyError(f"Dataset ID '{dataset_id}' not found in registry")
         return self._datasets[dataset_id]
 
     def get_connection(self, dataset_id: str) -> duckdb.DuckDBPyConnection:
-        """Retrieve active DuckDB connection for a dataset."""
+        """Retrieve active DuckDB connection for a dataset.
+
+        Args:
+            dataset_id: Target dataset identifier.
+
+        Returns:
+            Underlying DuckDB PyConnection object.
+
+        Raises:
+            KeyError: If connection cannot be found.
+        """
         if dataset_id not in self._connections:
             raise KeyError(f"Connection for dataset ID '{dataset_id}' not found")
         return self._connections[dataset_id]
