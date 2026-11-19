@@ -171,3 +171,30 @@ async def test_make_plot_box_multi_group(tmp_path: Path):
     assert res.status == ToolStatus.ok
     assert Path(res.output["png_path"]).exists()
     assert "score" in res.output["text_summary"]
+
+
+@pytest.mark.asyncio
+async def test_make_plot_correlation_heatmap_two_variables(tmp_path: Path):
+    """Verify correlation heatmap executes correctly on minimal 2-variable dataset."""
+    import pandas as pd
+
+    df = pd.DataFrame({
+        "var_x": [1.0, 2.0, 3.0, 4.0, 5.0],
+        "var_y": [2.0, 4.0, 6.0, 8.0, 10.0],
+    })
+    csv_file = tmp_path / "two_var_heatmap.csv"
+    df.to_csv(csv_file, index=False)
+
+    settings = Settings(data_dir=str(tmp_path))
+    registry = DatasetRegistry()
+    registry.register("two_var_ds", csv_file)
+
+    res = await make_plot(
+        dataset_id="two_var_ds",
+        chart_type="correlation_heatmap",
+        registry=registry,
+        app_settings=settings,
+    )
+    assert res.status == ToolStatus.ok
+    assert Path(res.output["png_path"]).exists()
+    assert "Heatmap" in str(res.output["plotly_spec"])
