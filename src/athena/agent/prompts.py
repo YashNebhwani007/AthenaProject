@@ -405,5 +405,15 @@ def build_context_message(handle: DatasetHandle, profile_result: ToolResult | No
 
 
 def validate_report_json_schema(data: dict[str, Any]) -> Report:
-    """Validate that a parsed JSON dictionary strictly conforms to the Report schema."""
+    """Validate that a parsed JSON dictionary strictly conforms to the Report schema.
+
+    Args:
+        data: Raw dictionary payload parsed from JSON output.
+
+    Returns:
+        Validated Report Pydantic model instance.
+
+    Raises:
+        pydantic.ValidationError: If the dictionary does not satisfy the schema.
+    """
     return Report.model_validate(data)
