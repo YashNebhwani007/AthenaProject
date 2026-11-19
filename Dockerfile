@@ -16,6 +16,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
+# Create non-root user for security hardening
+RUN groupadd -g 10001 athena && \
+    useradd -u 10001 -g athena -s /bin/bash -m athena
+
 COPY pyproject.toml .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir .
@@ -24,6 +28,10 @@ COPY src/ /app/src/
 COPY demo_data/ /app/demo_data/
 COPY benchmark/ /app/benchmark/
 COPY --from=frontend /app/frontend/dist /app/static
+
+RUN mkdir -p /app/data && chown -R athena:athena /app
+
+USER athena
 
 ENV DEMO_MODE=true
 ENV PYTHONUNBUFFERED=1
