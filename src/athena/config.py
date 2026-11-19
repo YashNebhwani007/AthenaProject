@@ -1,5 +1,6 @@
 """Athena configuration module."""
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -18,42 +19,46 @@ class Settings(BaseSettings):
     )
 
     # LLM
-    llm_provider: str = "groq"
-    llm_model: str = "llama-3.3-70b-versatile"
-    llm_api_key: str = ""
-    llm_base_url: str = "https://api.groq.com/openai/v1"
-    llm_cache_mode: str = "off"
-    llm_max_retries: int = 3
-    llm_seed: int = 42
+    llm_provider: str = Field(default="groq", description="LLM provider name (e.g. groq, gemini)")
+    llm_model: str = Field(default="llama-3.3-70b-versatile", description="Model identifier")
+    llm_api_key: str = Field(default="", description="API key for LLM service")
+    llm_base_url: str = Field(default="https://api.groq.com/openai/v1", description="Endpoint URL")
+    llm_cache_mode: str = Field(default="off", description="LLM response cache mode")
+    llm_max_retries: int = Field(default=3, description="Maximum API retry attempts")
+    llm_seed: int = Field(default=42, description="Deterministic seed for generation")
 
     # Budgets
-    max_steps: int = 30
-    max_tool_calls: int = 20
-    max_tokens: int = 100000
-    timeout_seconds: int = 300
+    max_steps: int = Field(default=30, description="Max tool-calling orchestration steps")
+    max_tool_calls: int = Field(default=20, description="Max tool calls per session")
+    max_tokens: int = Field(default=100000, description="Max token allowance")
+    timeout_seconds: int = Field(default=300, description="Overall timeout in seconds")
 
     # Data limits & DuckDB
-    max_file_size_mb: int = 50
-    max_rows: int = 500000
-    max_columns: int = 500
-    sample_rows: int = 5
-    sql_row_limit: int = 10000
-    sql_timeout_seconds: int = 30
-    duckdb_memory_limit: str = "512MB"
+    max_file_size_mb: int = Field(default=50, description="Max uploaded file size in MB")
+    max_rows: int = Field(default=500000, description="Max rows loaded into DuckDB")
+    max_columns: int = Field(default=500, description="Max columns allowed in dataset")
+    sample_rows: int = Field(default=5, description="Number of sample values per column")
+    sql_row_limit: int = Field(default=10000, description="Max rows returned by SQL query")
+    sql_timeout_seconds: int = Field(default=30, description="Timeout for SQL queries")
+    duckdb_memory_limit: str = Field(default="512MB", description="DuckDB max memory limit")
 
     # Machine Learning
-    random_seed: int = 42
-    shap_max_samples: int = 1000
-    test_size: float = 0.2
-    cv_folds: int = 5
+    random_seed: int = Field(default=42, description="Random seed for ML train/test splitting")
+    shap_max_samples: int = Field(default=1000, description="Max samples for SHAP explainability")
+    test_size: float = Field(default=0.2, description="Fraction of data for held-out testing")
+    cv_folds: int = Field(default=5, description="Cross-validation fold count")
 
     # Statistical Analysis
-    alpha: float = 0.05
+    alpha: float = Field(default=0.05, description="Significance threshold for hypothesis tests")
 
     # Verifier
-    max_repair_iterations: int = 2
-    numeric_tolerance_relative: float = 0.01
-    numeric_tolerance_absolute: float = 0.005
+    max_repair_iterations: int = Field(default=2, description="Max repair attempts in verifier")
+    numeric_tolerance_relative: float = Field(
+        default=0.01, description="V1 relative tolerance (1%)"
+    )
+    numeric_tolerance_absolute: float = Field(
+        default=0.005, description="V1 absolute tolerance (0.005)"
+    )
 
     # Server & API
     host: str = "0.0.0.0"
