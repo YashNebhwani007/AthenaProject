@@ -611,3 +611,15 @@ def test_v5_boundary_slightly_above_30_percent_missingness_fails():
     rep = Report(question="Q", tldr="tl", findings=[], caveats=[])
     res = check_v5_data_quality_propagation(rep, [tr])
     assert any(not r.passed for r in res)
+
+
+def test_v5_caveat_detection_with_casing_variations_passes():
+    tr = make_tool_result("t1", "leakage_check", [], output={"highest_severity": "high"})
+    rep = Report(
+        question="Q",
+        tldr="tl",
+        findings=[],
+        caveats=["CRITICAL WARNING: TARGET LEAKAGE OBSERVED IN PREDICTIVE COHORT."],
+    )
+    res = check_v5_data_quality_propagation(rep, [tr])
+    assert all(r.passed for r in res)
