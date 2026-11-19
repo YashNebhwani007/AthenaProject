@@ -72,3 +72,25 @@ async def test_sdk_ask_stream_parsing():
         assert events[1]["data"] == {"answer": 42}
     finally:
         await client.close()
+
+
+@pytest.mark.asyncio
+async def test_sdk_error_handling_http_status():
+    def mock_handler(request: httpx.Request) -> httpx.Response:
+        if "nonexistent" in request.url.path:
+            return httpx.Response(404, json={"detail": "Dataset not found"})
+        return httpx.Response(500, json={"detail": "Internal server error"})
+
+    transport = httpx.MockTransport(mock_handler)
+    client = AthenaClient(base_url="http://testserver")
+    client._client = httpx.AsyncClient(transport=transport, base_url="http://testserver")
+    try:
+        with pytest.raises(httpx.HTTPStatusError) as exc_info:
+            await client.get_profile("nonexistent")
+        assert exc_info.value.response.status_code == 404
+
+        with pytest.raises(httpx.HTTPStatusError) as exc_info:
+            await client.get_run("run_err")
+        assert exc_info.value.response.status_code == 500
+    finally:
+        await client.close()
