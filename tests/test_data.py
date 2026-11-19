@@ -116,3 +116,17 @@ def test_row_limit_rejected(sample_csv: Path):
 
     with pytest.raises(ValueError, match="Row count"):
         registry.register(dataset_id="too_many_rows", file_path=sample_csv)
+
+
+def test_csv_semicolon_delimited_loading(tmp_path: Path):
+    """Verify registry loads CSV files using semicolon delimiters."""
+    csv_file = tmp_path / "semicolon.csv"
+    csv_file.write_text("col_a;col_b;col_c\n10;20;30\n40;50;60\n", encoding="utf-8")
+
+    registry = DatasetRegistry()
+    handle = registry.register(dataset_id="semi_ds", file_path=csv_file)
+
+    assert handle.row_count == 2
+    assert handle.column_count == 3
+    assert {c.name for c in handle.columns} == {"col_a", "col_b", "col_c"}
+    registry.cleanup("semi_ds")

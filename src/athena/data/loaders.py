@@ -147,7 +147,10 @@ def load_csv(
     path = Path(file_path)
     _validate_file_size(path, cfg)
 
-    df = pd.read_csv(path)
+    try:
+        df = pd.read_csv(path, sep=None, engine="python")
+    except Exception:
+        df = pd.read_csv(path)
     return _load_dataframe_into_conn(
         df=df,
         conn=conn,
