@@ -217,3 +217,14 @@ def test_tool_result_empty_metrics_and_artifacts_serialization():
     assert parsed.id == "empty_t"
     assert parsed.metrics == []
     assert parsed.artifacts == []
+
+
+def test_report_missing_tldr_defaults_when_findings_present():
+    """Verify Report generates default tldr when findings exist but tldr is missing."""
+    raw = {
+        "question": "Sample Q?",
+        "findings": [{"id": "f1", "text": "Observed finding."}],
+    }
+    report = Report.model_validate(raw)
+    assert report.tldr == "Analysis completed."
+    assert len(report.findings) == 1
