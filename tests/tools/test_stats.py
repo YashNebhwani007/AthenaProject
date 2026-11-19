@@ -186,3 +186,32 @@ async def test_stats_test_mann_whitney_non_normal(stats_registry: DatasetRegistr
     assert res.output["test_name"] == "mann_whitney_u"
     assert "p_value" in res.output
     assert res.output["effect_size_type"] == "cohens_d"
+
+
+@pytest.mark.asyncio
+async def test_stats_test_welch_t_test_unequal_sizes(tmp_path: Path):
+    """Verify Welch's t-test with unequal sample sizes and variances."""
+    np.random.seed(99)
+    g1 = np.random.normal(loc=10.0, scale=2.0, size=30)
+    g2 = np.random.normal(loc=15.0, scale=5.0, size=70)
+    df = pd.DataFrame({
+        "score": np.concatenate([g1, g2]),
+        "cohort": ["A"] * 30 + ["B"] * 70,
+    })
+    path = tmp_path / "welch_data.csv"
+    df.to_csv(path, index=False)
+    reg = DatasetRegistry()
+    reg.register(dataset_id="welch_ds", file_path=path)
+
+    res = await stats_test(
+        test_name="welch_t_test",
+        dataset_id="welch_ds",
+        var1="score",
+        var2="cohort",
+        registry=reg,
+    )
+    assert res.status == ToolStatus.ok
+    assert res.output["test_name"] == "welch_t_test"
+    assert "p_value" in res.output
+    assert res.output["p_value"] < 0.05
+    assert res.output["effect_size_type"] == "cohens_d"
