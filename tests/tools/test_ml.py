@@ -130,3 +130,29 @@ async def test_predict_model_auto_train(ml_registry: DatasetRegistry):
     assert pred_res.status == ToolStatus.ok
     assert "prediction" in pred_res.output
     assert pred_res.output["prediction"] in (0, 1)
+
+
+@pytest.mark.asyncio
+async def test_train_model_reproducibility_with_seed(ml_registry: DatasetRegistry):
+    """Verify train_model produces identical metrics when passing fixed random seed."""
+    from athena.config import Settings
+
+    cfg1 = Settings(random_seed=42)
+    cfg2 = Settings(random_seed=42)
+
+    res1 = await train_model(
+        target_col="churn",
+        dataset_id="churn_ds",
+        registry=ml_registry,
+        app_settings=cfg1,
+    )
+    res2 = await train_model(
+        target_col="churn",
+        dataset_id="churn_ds",
+        registry=ml_registry,
+        app_settings=cfg2,
+    )
+
+    assert res1.status == ToolStatus.ok
+    assert res2.status == ToolStatus.ok
+    assert res1.output["test_metrics"]["roc_auc"] == res2.output["test_metrics"]["roc_auc"]
