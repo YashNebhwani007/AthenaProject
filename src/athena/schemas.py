@@ -2,9 +2,29 @@
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any
+from typing import Any, TypedDict
 
 from pydantic import BaseModel, Field, model_validator
+
+
+class SQLOutputPayload(TypedDict, total=False):
+    """Structured dictionary representation of SQL execution payload."""
+
+    columns: list[str]
+    rows: list[list[Any]]
+    total_rows: int
+    truncated: bool
+    query: str
+
+
+class PredictionOutputPayload(TypedDict, total=False):
+    """Structured dictionary representation of model prediction payload."""
+
+    model_id: str
+    features: dict[str, Any]
+    prediction: int | float | str
+    probability: float | None
+    probability_percent: float | None
 
 
 class ToolStatus(str, Enum):
