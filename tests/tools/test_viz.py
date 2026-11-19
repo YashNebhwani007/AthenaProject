@@ -142,3 +142,32 @@ async def test_make_plot_histogram_custom_title(dataset_setup):
     assert res.status == ToolStatus.ok
     assert Path(res.output["png_path"]).exists()
     assert res.output["title"] == "Custom Charges Distribution"
+
+
+@pytest.mark.asyncio
+async def test_make_plot_box_multi_group(tmp_path: Path):
+    """Verify box plot renders across 3 distinct categorical groups."""
+    import pandas as pd
+
+    df = pd.DataFrame({
+        "cohort": ["alpha", "beta", "gamma"] * 20,
+        "score": [10.0, 20.0, 30.0] * 20,
+    })
+    csv_file = tmp_path / "multi_box.csv"
+    df.to_csv(csv_file, index=False)
+
+    settings = Settings(data_dir=str(tmp_path))
+    registry = DatasetRegistry()
+    registry.register("multi_box_ds", csv_file)
+
+    res = await make_plot(
+        dataset_id="multi_box_ds",
+        chart_type="box",
+        x="cohort",
+        y="score",
+        registry=registry,
+        app_settings=settings,
+    )
+    assert res.status == ToolStatus.ok
+    assert Path(res.output["png_path"]).exists()
+    assert "score" in res.output["text_summary"]
