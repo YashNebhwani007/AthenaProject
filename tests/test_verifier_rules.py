@@ -96,6 +96,18 @@ def test_v1_unresolved_placeholder_fails():
     assert any(not r.passed for r in res)
 
 
+def test_v1_nested_placeholder_fails():
+    finding = Finding(
+        id="f1",
+        text="Average loss was {{tool_1.metrics.nested.loss_val}}.",
+        claim_type=ClaimType.descriptive,
+        evidence=[],
+    )
+    rep = Report(question="Q", tldr="tl", findings=[finding])
+    res = check_v1_numeric_grounding(rep, [])
+    assert any(not r.passed for r in res)
+
+
 def test_v1_ungrounded_literal_number_fails():
     finding = Finding(
         id="f1",
