@@ -25,6 +25,14 @@
       "expected_ground_truth_script": "churn_sql_03.py"
     },
     {
+      "id": "churn_sql_04",
+      "category": "sql",
+      "dataset_id": "telco_churn",
+      "question": "How many customers have PaperlessBilling set to Yes?",
+      "expected_answer_type": "count",
+      "expected_ground_truth_script": "churn_sql_04.py"
+    },
+    {
       "id": "housing_sql_01",
       "category": "sql",
       "dataset_id": "california_housing",
