@@ -110,3 +110,22 @@ async def test_run_sql_cte_and_case_expression(dataset_registry: DatasetRegistry
     assert "charge_tier" in result.output["columns"]
     assert "tier_count" in result.output["columns"]
     assert len(result.output["rows"]) > 0
+
+
+@pytest.mark.asyncio
+async def test_run_sql_window_functions(dataset_registry: DatasetRegistry):
+    """Verify run_sql supports window functions with PARTITION BY and OVER."""
+    query = """
+    SELECT
+        customer_id,
+        churn,
+        monthly_charges,
+        AVG(monthly_charges) OVER (PARTITION BY churn) AS avg_churn_charges
+    FROM customers
+    LIMIT 10
+    """
+    result = await run_sql(query=query, dataset_id="test_ds", registry=dataset_registry)
+
+    assert result.status == ToolStatus.ok
+    assert "avg_churn_charges" in result.output["columns"]
+    assert len(result.output["rows"]) == 10
