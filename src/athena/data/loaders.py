@@ -128,7 +128,21 @@ def load_csv(
     app_settings: Settings | None = None,
     dataset_id: str = "dataset",
 ) -> "DatasetHandle":
-    """Read CSV, enforce security and resource limits, and load into DuckDB."""
+    """Read CSV, enforce security and resource limits, and load into DuckDB.
+
+    Args:
+        file_path: Path to local CSV file on disk.
+        conn: Target in-memory DuckDB connection.
+        table_name: Target SQL table name to populate.
+        app_settings: Optional application settings for memory/row limits.
+        dataset_id: Logical dataset identifier.
+
+    Returns:
+        DatasetHandle with schema metadata, column types, and row count.
+
+    Raises:
+        ValueError: If file size, row count, or column count exceeds limits.
+    """
     cfg = app_settings or global_settings
     path = Path(file_path)
     _validate_file_size(path, cfg)
@@ -152,7 +166,21 @@ def load_parquet(
     app_settings: Settings | None = None,
     dataset_id: str = "dataset",
 ) -> "DatasetHandle":
-    """Read Parquet, enforce security and resource limits, and load into DuckDB."""
+    """Read Parquet, enforce security and resource limits, and load into DuckDB.
+
+    Args:
+        file_path: Path to local Parquet file on disk.
+        conn: Target in-memory DuckDB connection.
+        table_name: Target SQL table name to populate.
+        app_settings: Optional application settings for memory/row limits.
+        dataset_id: Logical dataset identifier.
+
+    Returns:
+        DatasetHandle with schema metadata, column types, and row count.
+
+    Raises:
+        ValueError: If file size, row count, or column count exceeds limits.
+    """
     cfg = app_settings or global_settings
     path = Path(file_path)
     _validate_file_size(path, cfg)
