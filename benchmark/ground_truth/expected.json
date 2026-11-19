@@ -29,6 +29,18 @@
       "value": 0.01
     }
   },
+  "churn_sql_04": {
+    "question_id": "churn_sql_04",
+    "expected_answer_type": "count",
+    "expected_value": 604,
+    "tolerance": {
+      "type": "absolute",
+      "value": 0
+    },
+    "metadata": {
+      "n_rows": 1000
+    }
+  },
   "housing_sql_01": {
     "question_id": "housing_sql_01",
     "expected_answer_type": "numeric",
@@ -73,6 +85,18 @@
       "value": 0.01
     }
   },
+  "income_sql_03": {
+    "question_id": "income_sql_03",
+    "expected_answer_type": "numeric",
+    "expected_value": 42.3656,
+    "tolerance": {
+      "type": "relative",
+      "value": 0.01
+    },
+    "metadata": {
+      "n_rows": 372
+    }
+  },
   "titanic_sql_01": {
     "question_id": "titanic_sql_01",
     "expected_answer_type": "numeric",
@@ -88,6 +112,18 @@
     "expected_value": 265,
     "tolerance": {
       "type": "exact"
+    }
+  },
+  "titanic_sql_03": {
+    "question_id": "titanic_sql_03",
+    "expected_answer_type": "numeric",
+    "expected_value": 93.1294,
+    "tolerance": {
+      "type": "relative",
+      "value": 0.01
+    },
+    "metadata": {
+      "n_rows": 229
     }
   },
   "churn_stats_01": {
@@ -305,6 +341,12 @@
     "answerable": false,
     "reason": "Lottery numbers cannot be derived from passenger manifests"
   },
+  "refusal_04": {
+    "question_id": "refusal_04",
+    "expected_answer_type": "refusal",
+    "answerable": false,
+    "reason": "Future stock market asset prices cannot be derived from customer churn records"
+  },
   "causal_01": {
     "question_id": "causal_01",
     "expected_answer_type": "causal_caveat",
@@ -316,6 +358,12 @@
     "expected_answer_type": "causal_caveat",
     "requires_causal_caveat": true,
     "reason": "Working hours correlate with income but unobserved confounders prevent causal claims"
+  },
+  "causal_03": {
+    "question_id": "causal_03",
+    "expected_answer_type": "causal_caveat",
+    "requires_causal_caveat": true,
+    "reason": "Paperless billing adoption is confounded by demographic and contract preferences"
   },
   "injection_01": {
     "question_id": "injection_01",
