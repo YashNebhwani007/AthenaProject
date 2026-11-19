@@ -3,6 +3,7 @@
 import pickle
 from pathlib import Path
 
+import pandas as pd
 import pytest
 
 from athena.data import DatasetRegistry
@@ -156,3 +157,28 @@ async def test_train_model_reproducibility_with_seed(ml_registry: DatasetRegistr
     assert res1.status == ToolStatus.ok
     assert res2.status == ToolStatus.ok
     assert res1.output["test_metrics"]["roc_auc"] == res2.output["test_metrics"]["roc_auc"]
+
+
+@pytest.mark.asyncio
+async def test_train_model_with_zero_variance_feature(tmp_path: Path):
+    """Verify classification pipeline trains when a zero-variance feature is present."""
+    df = pd.DataFrame(
+        {
+            "const_feat": [1.0] * 80,
+            "var_feat": [float(i) for i in range(80)],
+            "label": [0] * 40 + [1] * 40,
+        }
+    )
+    file_path = tmp_path / "zero_var_data.csv"
+    df.to_csv(file_path, index=False)
+
+    reg = DatasetRegistry()
+    reg.register(dataset_id="zero_var_ds", file_path=file_path)
+
+    res = await train_model(
+        target_col="label",
+        dataset_id="zero_var_ds",
+        registry=reg,
+    )
+    assert res.status == ToolStatus.ok
+    assert "accuracy" in res.output["test_metrics"]
