@@ -129,3 +129,24 @@ async def test_run_sql_window_functions(dataset_registry: DatasetRegistry):
     assert result.status == ToolStatus.ok
     assert "avg_churn_charges" in result.output["columns"]
     assert len(result.output["rows"]) == 10
+
+
+@pytest.mark.asyncio
+async def test_run_sql_math_functions(dataset_registry: DatasetRegistry):
+    """Verify run_sql supports mathematical functions ROUND, ABS, and SQRT."""
+    query = """
+    SELECT
+        customer_id,
+        ROUND(monthly_charges, 1) AS rounded_charges,
+        ABS(monthly_charges - 50.0) AS diff_from_50,
+        SQRT(monthly_charges) AS sqrt_charges
+    FROM customers
+    LIMIT 5
+    """
+    result = await run_sql(query=query, dataset_id="test_ds", registry=dataset_registry)
+
+    assert result.status == ToolStatus.ok
+    assert "rounded_charges" in result.output["columns"]
+    assert "diff_from_50" in result.output["columns"]
+    assert "sqrt_charges" in result.output["columns"]
+    assert len(result.output["rows"]) == 5
