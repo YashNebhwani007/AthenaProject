@@ -76,3 +76,15 @@ def test_budget_zero_increments_preserve_counters():
     assert snap["steps"] == 0
     assert snap["tool_calls"] == 0
     assert snap["tokens"] == 0
+
+
+def test_budget_exact_boundary_passes_and_one_over_fails():
+    """Verify reaching exact limit boundary passes, but 1 increment over exhausts budget."""
+    b = Budget(max_tokens=100)
+    b.record_tokens(100)
+    assert b.tokens == 100
+
+    with pytest.raises(BudgetExhausted) as exc_info:
+        b.record_tokens(1)
+    assert exc_info.value.limit_name == "max_tokens"
+    assert exc_info.value.current_value == 101
