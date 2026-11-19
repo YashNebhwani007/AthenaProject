@@ -142,6 +142,22 @@ export type SSEEventType =
   | 'status'
   | 'clarification_needed'
 
+export interface StepStartedPayload {
+  step_index: number
+  tool: string
+  args: Record<string, any>
+}
+
+export interface VerificationEventPayload {
+  summary: VerificationSummary
+  iteration: number
+  repaired: boolean
+}
+
+export interface FinalReportPayload {
+  run_result: RunResult
+}
+
 export interface SSEMessage {
   event: SSEEventType
   data: any
