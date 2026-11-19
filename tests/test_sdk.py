@@ -45,3 +45,30 @@ async def test_sdk_upload_dataset(tmp_path):
         assert res["column_count"] == 2
     finally:
         await client.close()
+
+
+@pytest.mark.asyncio
+async def test_sdk_ask_stream_parsing():
+    def mock_handler(request: httpx.Request) -> httpx.Response:
+        content = (
+            b"event: status\r\n"
+            b'data: {"step": "planning"}\r\n\r\n'
+            b"event: result\r\n"
+            b'data: {"answer": 42}\r\n\r\n'
+        )
+        return httpx.Response(200, content=content, headers={"Content-Type": "text/event-stream"})
+
+    transport = httpx.MockTransport(mock_handler)
+    client = AthenaClient(base_url="http://testserver")
+    client._client = httpx.AsyncClient(transport=transport, base_url="http://testserver")
+    try:
+        events = []
+        async for event in client.ask_stream(session_id="sess_123", question="Test?"):
+            events.append(event)
+        assert len(events) == 2
+        assert events[0]["event"] == "status"
+        assert events[0]["data"] == {"step": "planning"}
+        assert events[1]["event"] == "result"
+        assert events[1]["data"] == {"answer": 42}
+    finally:
+        await client.close()
