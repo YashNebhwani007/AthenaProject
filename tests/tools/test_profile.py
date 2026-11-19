@@ -80,3 +80,28 @@ async def test_profile_dataset_single_row(tmp_path: Path):
     assert res.output["column_count"] == 3
     assert res.output["duplicate_rows"] == 0
     reg.cleanup()
+
+
+@pytest.mark.asyncio
+async def test_profile_dataset_all_null_column(tmp_path: Path):
+    """Verify profiling a dataset with a 100% null column identifies high missingness."""
+    import pandas as pd
+
+    df = pd.DataFrame(
+        {
+            "id": [1, 2, 3],
+            "all_null": [None, None, None],
+            "valid_feature": [10.0, 20.0, 30.0],
+        }
+    )
+    file_path = tmp_path / "null_col.csv"
+    df.to_csv(file_path, index=False)
+
+    reg = DatasetRegistry()
+    reg.register(dataset_id="null_col_ds", file_path=file_path)
+
+    res = await profile_dataset(dataset_id="null_col_ds", registry=reg)
+    assert res.status == ToolStatus.ok
+    assert "all_null" in res.output["high_missingness_columns"]
+    assert res.output["columns"]["all_null"]["null_pct"] == 1.0
+    reg.cleanup()
