@@ -232,6 +232,32 @@ def test_v2_weak_correlation_claiming_strong_fails():
     assert any(not r.passed for r in res)
 
 
+def test_v2_predictive_claim_missing_metrics_fails():
+    tr = make_tool_result("t1", "predict_model", [Metric(name="samples", value=100, unit="")])
+    finding = Finding(
+        id="f1",
+        text="Model predicts customer churn with high fidelity.",
+        claim_type=ClaimType.predictive,
+        evidence=[EvidenceRef(tool_result_id="t1", metric="samples")],
+    )
+    rep = Report(question="Q", tldr="tl", findings=[finding])
+    res = check_v2_claim_evidence_consistency(rep, [tr])
+    assert any(not r.passed for r in res)
+
+
+def test_v2_predictive_claim_with_auc_metric_passes():
+    tr = make_tool_result("t1", "predict_model", [Metric(name="roc_auc", value=0.88, unit="")])
+    finding = Finding(
+        id="f1",
+        text="Model achieved strong discriminative power on test split.",
+        claim_type=ClaimType.predictive,
+        evidence=[EvidenceRef(tool_result_id="t1", metric="roc_auc")],
+    )
+    rep = Report(question="Q", tldr="tl", findings=[finding])
+    res = check_v2_claim_evidence_consistency(rep, [tr])
+    assert all(r.passed for r in res)
+
+
 # -------------------------------------------------------------
 # Rule V3 Tests: Causal Language
 # -------------------------------------------------------------
