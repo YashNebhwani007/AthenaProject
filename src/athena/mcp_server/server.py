@@ -14,7 +14,7 @@ from athena.data import default_registry
 from athena.data.registry import DatasetHandle
 from athena.tools.explain import explain_model
 from athena.tools.leakage import check_leakage
-from athena.tools.ml import train_model
+from athena.tools.ml import predict_model, train_model
 from athena.tools.profile import profile_dataset
 from athena.tools.sql import run_sql
 from athena.tools.stats import stats_test
@@ -181,6 +181,31 @@ async def mcp_make_plot(
         y=y,
         color=color,
         title=title,
+    )
+    return res.model_dump(mode="json")
+
+
+@server.tool(name="predict_model")
+async def mcp_predict_model(
+    dataset_path: str,
+    features: dict[str, Any],
+    model_id: str | None = None,
+    target: str | None = None,
+) -> dict[str, Any]:
+    """Generate predictions and probabilities for hypothetical or new feature inputs.
+
+    Args:
+        dataset_path: Path to the dataset file.
+        features: Dictionary of input feature values.
+        model_id: Optional ID of a trained model.
+        target: Optional target column if model needs to be auto-trained.
+    """
+    handle = _get_or_register_handle(dataset_path)
+    res = await predict_model(
+        features=features,
+        dataset_id=handle.dataset_id,
+        model_id=model_id,
+        target_col=target,
     )
     return res.model_dump(mode="json")
 

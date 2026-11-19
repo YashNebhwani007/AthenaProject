@@ -1,6 +1,6 @@
 # Athena AI — Autonomous Data Science & Decision Intelligence Agent
 
-[![CI Test Suite](https://github.com/your-username/AthenaProject/actions/workflows/ci.yml/badge.svg)](https://github.com/your-username/AthenaProject)
+[![CI Test Suite](https://github.com/YashNebhwani007/AthenaProject/actions/workflows/ci.yml/badge.svg)](https://github.com/YashNebhwani007/AthenaProject)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
@@ -26,6 +26,7 @@ graph TD
     Orchestrator --> Leak["Data Leakage Auditor (6 Independent Checks)"]
     Orchestrator --> ML["Scikit-Learn / LightGBM (Leak-Free Pipelines)"]
     Orchestrator --> Explain["SHAP Explainability (Global + Local)"]
+    Orchestrator --> Predict["Predictive Inference (Out-of-Sample Scoring)"]
     Orchestrator --> Viz["Plotly & Matplotlib Visualizations"]
   end
 
@@ -85,6 +86,23 @@ python -m benchmark.runner --systems A1,A2,B1 --questions smoke
 
 ---
 
+## Deterministic Analytical & Machine Learning Suite
+
+Athena provides a comprehensive suite of 8 deterministic tools that execute sandboxed computations without LLM guessing:
+
+| Capability | Tool | Description |
+|---|---|---|
+| **Dataset Profiling** | `profile` | Schema detection, missingness, duplicate counts, summary statistics, and data quality warnings. |
+| **SQL Subgroup Analysis** | `run_sql` | AST-validated read-only DuckDB SQL with automated granular metric extraction and table view aliases. |
+| **Hypothesis Testing** | `recommend_test` & `stats_test` | Assumption verification and formal tests (t-test, ANOVA, Mann-Whitney, Chi-Square, Fisher's exact, Pearson/Spearman correlation) with Bonferroni correction. |
+| **Data Leakage Auditing** | `check_leakage` | 6 independent checks: suspicious column names, unique IDs, high correlation, single-feature AUC, duplicate rows, temporal leakage. |
+| **Model Training** | `train_model` | Leak-free preprocessing, 5-fold cross-validation, and held-out test evaluation across baseline, linear, and gradient-boosted (LightGBM) models. |
+| **SHAP Explainability** | `explain_model` | Global SHAP feature importance rankings and local waterfall explanations for individual predictions. |
+| **Predictive Inference** | `predict_model` | Out-of-sample prediction and probability scoring on new/hypothetical feature inputs with automated imputation. |
+| **Visualizations** | `make_plot` | Interactive Plotly charts and static publication-grade PNG artifacts (histograms, bar charts, box plots, scatter plots, heatmaps). |
+
+---
+
 ## Quickstart
 
 ### Prerequisites
@@ -93,7 +111,7 @@ python -m benchmark.runner --systems A1,A2,B1 --questions smoke
 
 ### 1. Clone & Install Backend
 ```bash
-git clone https://github.com/your-username/AthenaProject.git
+git clone https://github.com/YashNebhwani007/AthenaProject.git
 cd AthenaProject
 
 python -m venv .venv

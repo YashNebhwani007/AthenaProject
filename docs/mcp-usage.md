@@ -11,7 +11,7 @@ This allows AI assistants like Claude Desktop, Cursor, or custom LLM agent workf
 Ensure Athena is installed in your Python environment:
 
 ```bash
-git clone https://github.com/your-username/AthenaProject.git
+git clone https://github.com/YashNebhwani007/AthenaProject.git
 cd AthenaProject
 pip install -e .
 ```
@@ -58,14 +58,15 @@ If `athena-mcp` is installed inside a virtual environment, specify the full path
 }
 ```
 
-Restart Claude Desktop. You will see a hammer icon 🔨 indicating that the following 7 Athena tools are loaded:
+Restart Claude Desktop. You will see a hammer icon 🔨 indicating that the following 8 Athena tools are loaded:
 1. `profile_dataset`
 2. `run_sql`
 3. `stats_test`
 4. `train_model`
 5. `explain_model`
-6. `leakage_check`
-7. `make_plot`
+6. `predict_model`
+7. `leakage_check`
+8. `make_plot`
 
 ---
 
@@ -136,5 +137,6 @@ if __name__ == "__main__":
 | `stats_test` | `dataset_path`, `test_name`, `var1`, `var2`, `alpha` | Test statistic, p-value, effect size, statistical significance. |
 | `train_model` | `dataset_path`, `target`, `split_strategy` | Held-out validation metrics, model artifact ID. |
 | `explain_model` | `dataset_path`, `model_id`, `target`, `instance_idx` | SHAP global feature importances and local sample explanation. |
+| `predict_model` | `dataset_path`, `features`, `model_id`, `target` | Prediction outcome, class probabilities, and confidence score. |
 | `leakage_check` | `dataset_path`, `target` | High-confidence leakage warnings (ID detection, high correlation, duplicate rows). |
 | `make_plot` | `dataset_path`, `plot_type`, `x`, `y`, `color`, `title` | Static PNG artifact and interactive Plotly JSON specification. |

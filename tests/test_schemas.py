@@ -149,11 +149,13 @@ def test_evidenceref_normalization_string():
     assert ref2.tool_result_id == ""
     assert ref2.metric == "survival_rate"
 
-    finding = Finding.model_validate({
-        "id": "f1",
-        "text": "Survival was high.",
-        "evidence": ["titanic_analysis.survival_rate", "t2.count"],
-    })
+    finding = Finding.model_validate(
+        {
+            "id": "f1",
+            "text": "Survival was high.",
+            "evidence": ["titanic_analysis.survival_rate", "t2.count"],
+        }
+    )
     assert len(finding.evidence) == 2
     assert finding.evidence[0].tool_result_id == "titanic_analysis"
     assert finding.evidence[0].metric == "survival_rate"
