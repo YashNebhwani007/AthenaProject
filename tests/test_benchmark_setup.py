@@ -82,3 +82,18 @@ def test_benchmark_questions_unique_ids_and_fields():
         assert "question" in q and len(q["question"]) > 5
         assert "dataset_id" in q and q["dataset_id"]
         assert "category" in q and q["category"]
+
+
+def test_benchmark_dataset_dictionaries_exist():
+    """Verify all four benchmark datasets have corresponding Markdown data dictionaries."""
+    base = Path(__file__).parent.parent / "benchmark" / "datasets"
+    expected_dicts = [
+        "telco_churn_dictionary.md",
+        "adult_income_dictionary.md",
+        "california_housing_dictionary.md",
+        "titanic_dictionary.md",
+    ]
+    for dict_name in expected_dicts:
+        p = base / dict_name
+        assert p.exists(), f"Missing dataset dictionary: {dict_name}"
+        assert p.stat().st_size > 100, f"Dictionary file too small: {dict_name}"
