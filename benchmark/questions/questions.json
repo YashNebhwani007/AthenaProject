@@ -89,6 +89,14 @@
       "expected_ground_truth_script": "titanic_sql_02.py"
     },
     {
+      "id": "titanic_sql_03",
+      "category": "sql",
+      "dataset_id": "titanic",
+      "question": "What is the average fare paid by passengers in First Class?",
+      "expected_answer_type": "numeric",
+      "expected_ground_truth_script": "titanic_sql_03.py"
+    },
+    {
       "id": "churn_stats_01",
       "category": "stats",
       "dataset_id": "telco_churn",
