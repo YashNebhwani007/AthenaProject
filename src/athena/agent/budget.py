@@ -1,10 +1,23 @@
 """Execution budget tracker enforcing step, tool call, token, and time limits."""
 
 import time
-from typing import Any
+from typing import TypedDict
 
 from athena.config import Settings
 from athena.config import settings as global_settings
+
+
+class BudgetSnapshot(TypedDict):
+    """Structured dictionary representation of budget consumption."""
+
+    steps: int
+    max_steps: int
+    tool_calls: int
+    max_tool_calls: int
+    tokens: int
+    max_tokens: int
+    elapsed_seconds: float
+    timeout_seconds: float
 
 
 class BudgetExhausted(Exception):
@@ -100,7 +113,7 @@ class Budget:
                 limit_value=self.max_tokens,
             )
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> BudgetSnapshot:
         """Return current budget usage snapshot."""
         return {
             "steps": self.steps,
