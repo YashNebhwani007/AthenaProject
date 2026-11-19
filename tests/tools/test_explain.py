@@ -55,3 +55,38 @@ async def test_explain_model_end_to_end(tmp_path: Path):
     metric_names = [m.name for m in explain_res.metrics]
     assert "top_feature" in metric_names
     assert "top_feature_importance" in metric_names
+
+
+@pytest.mark.asyncio
+async def test_explain_model_local_waterfall_values(tmp_path: Path):
+    """Verify local SHAP instance values contain feature names and valid attributions."""
+    settings = Settings(data_dir=str(tmp_path))
+    registry = DatasetRegistry()
+
+    csv_path = Path("tests/fixtures/test_data.csv").resolve()
+    registry.register("test_ds", csv_path)
+
+    train_res = await train_model(
+        target_col="churn",
+        dataset_id="test_ds",
+        registry=registry,
+        app_settings=settings,
+    )
+    model_id = train_res.output["model_id"]
+
+    explain_res = await explain_model(
+        model_id=model_id,
+        dataset_id="test_ds",
+        target_col="churn",
+        sample_index=1,
+        registry=registry,
+        app_settings=settings,
+    )
+
+    assert explain_res.status == ToolStatus.ok
+    local_exp = explain_res.output["local_explanation"]
+    assert len(local_exp) > 0
+    for item in local_exp:
+        assert "feature" in item
+        assert "shap_value" in item
+        assert isinstance(item["shap_value"], float)
