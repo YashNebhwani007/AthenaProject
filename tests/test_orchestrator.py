@@ -201,3 +201,31 @@ async def test_orchestrator_event_callback(dataset_registry: DatasetRegistry):
     assert "report_draft" in event_names
     assert "verification" in event_names
     assert "final" in event_names
+
+
+@pytest.mark.asyncio
+async def test_orchestrator_event_callback_order(dataset_registry: DatasetRegistry):
+    """Verify orchestrator events arrive in chronological lifecycle order."""
+    mock_llm = MockSequenceLLM(
+        [
+            LLMResponse(
+                content='{"question": "Q?", "tldr": "Done", "findings": []}',
+                is_final=True,
+            )
+        ]
+    )
+    event_sequence = []
+
+    async def on_event(ev: dict[str, Any]) -> None:
+        event_sequence.append(ev["event"])
+
+    orchestrator = Orchestrator(llm_client=mock_llm, registry=dataset_registry)
+    await orchestrator.run(
+        question="Q?",
+        dataset_id="orch_test",
+        event_callback=on_event,
+    )
+    assert event_sequence[0] == "tool_result"
+    assert "report_draft" in event_sequence
+    assert "verification" in event_sequence
+    assert event_sequence[-1] == "final"
