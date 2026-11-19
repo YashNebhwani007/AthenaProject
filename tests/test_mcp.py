@@ -70,3 +70,13 @@ async def test_mcp_train_and_predict() -> None:
     )
     assert not pred_res.is_error
     assert "prediction" in pred_res.content[0].text
+
+
+@pytest.mark.asyncio
+async def test_mcp_call_unknown_tool_returns_error() -> None:
+    """Verify calling an unregistered tool returns an error or raises an exception."""
+    try:
+        res = await server.call_tool("non_existent_tool_xyz", {})
+        assert res.is_error or "not found" in res.content[0].text.lower()
+    except Exception as exc:
+        assert "not found" in str(exc).lower() or "unknown" in str(exc).lower()
