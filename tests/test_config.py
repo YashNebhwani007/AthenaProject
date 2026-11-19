@@ -115,3 +115,17 @@ def test_demo_limits():
     )
     assert custom_demo_settings.effective_max_file_size_mb == 2
     assert custom_demo_settings.effective_max_rows == 10000
+
+
+def test_custom_data_dir_and_tolerances():
+    """Verify custom numeric tolerances and directory paths are preserved."""
+    s = Settings(
+        data_dir="/tmp/custom_athena_data",
+        numeric_tolerance_relative=0.02,
+        numeric_tolerance_absolute=0.01,
+        duckdb_memory_limit="2GB",
+    )
+    assert s.data_dir == "/tmp/custom_athena_data"
+    assert s.numeric_tolerance_relative == 0.02
+    assert s.numeric_tolerance_absolute == 0.01
+    assert s.duckdb_memory_limit == "2GB"
