@@ -110,3 +110,35 @@ async def test_make_plot_shap_summary(dataset_setup):
     assert res.status == ToolStatus.ok
     assert Path(res.output["png_path"]).exists()
     assert len(res.output["text_summary"]) > 0
+
+
+@pytest.mark.asyncio
+async def test_make_plot_unsupported_chart_type_returns_error(dataset_setup):
+    """Verify requesting an invalid chart type returns an error tool result."""
+    settings, registry = dataset_setup
+    res = await make_plot(
+        dataset_id="test_ds",
+        chart_type="invalid_type",
+        registry=registry,
+        app_settings=settings,
+    )
+    assert res.status == ToolStatus.error
+    assert len(res.warnings) > 0
+    assert "unsupported chart_type" in res.warnings[0].lower()
+
+
+@pytest.mark.asyncio
+async def test_make_plot_histogram_custom_title(dataset_setup):
+    """Verify histogram honors custom title formatting."""
+    settings, registry = dataset_setup
+    res = await make_plot(
+        dataset_id="test_ds",
+        chart_type="histogram",
+        x="monthly_charges",
+        title="Custom Charges Distribution",
+        registry=registry,
+        app_settings=settings,
+    )
+    assert res.status == ToolStatus.ok
+    assert Path(res.output["png_path"]).exists()
+    assert res.output["title"] == "Custom Charges Distribution"
