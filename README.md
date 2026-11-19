@@ -196,6 +196,39 @@ Key architectural decisions are documented under [`docs/adr/`](docs/adr/):
 - [ADR-18: Multi-Model Benchmark Evaluation Strategy](docs/adr/adr-18-benchmark-evaluation-strategy.md)
 - [ADR-19: DuckDB Table Aliasing and AST Safety](docs/adr/adr-19-duckdb-table-aliasing.md)
 - [ADR-20: Frontend SSE Stream Normalization](docs/adr/adr-20-sse-stream-normalization.md)
+- [ADR-21: Client-Side Markdown Rendering and KaTeX Sanitization](docs/adr/adr-21-client-side-markdown-security.md)
+- [ADR-22: Web Worker Offloading for Large Interactive Visualizations](docs/adr/adr-22-web-worker-plot-offloading.md)
+- [ADR-23: Dynamic Fast-Path vs Deep-Verification Routing](docs/adr/adr-23-dynamic-orchestration-routing.md)
+- [ADR-24: MCP Tool Timeout Handling and Deadlock Mitigation](docs/adr/adr-24-mcp-timeout-deadlock-mitigation.md)
+- [ADR-25: Multi-Table Join AST Validation and Schema Reflection](docs/adr/adr-25-multi-table-join-ast-validation.md)
+- [ADR-26: DuckDB Memory Limit and Disk Spill Policy](docs/adr/adr-26-duckdb-memory-disk-spill-policy.md)
+- [ADR-27: Automated Family-Wise Error Rate and FDR Control](docs/adr/adr-27-fwer-and-fdr-multiplicity-control.md)
+- [ADR-28: Variance Inflation Factor (VIF) Collinearity Pruning](docs/adr/adr-28-vif-collinearity-pruning.md)
+- [ADR-29: Structured Log Ingestion and OpenTelemetry Trace Context](docs/adr/adr-29-structured-logging-opentelemetry.md)
+- [ADR-30: Human-in-the-Loop Interactive Verification Checkpoints](docs/adr/adr-30-human-in-the-loop-checkpoints.md)
+
+---
+
+## Technical Guides
+
+Comprehensive operational guides are available in [`docs/guides/`](docs/guides/):
+
+- [Dataset Onboarding Guide](docs/guides/dataset-onboarding.md)
+- [Verifier Rules Specification](docs/guides/verifier-rules-specification.md)
+- [Prompt Engineering & Tool Calling Manual](docs/guides/prompt-engineering-tool-calling.md)
+- [Statistical Test Selection Decision Tree](docs/guides/statistical-test-decision-tree.md)
+- [Data Leakage Audit Heuristics](docs/guides/data-leakage-audit-rules.md)
+- [SHAP Explainability Manual](docs/guides/shap-explainability-manual.md)
+- [Benchmark Scoring Methodology](docs/guides/benchmark-scoring-methodology.md)
+- [Claude Desktop & Claude Code MCP Setup](docs/guides/mcp-setup-claude-desktop.md)
+- [Frontend Architecture & SSE Streaming Manual](docs/guides/frontend-architecture.md)
+- [DuckDB AST Security Sandbox & Validator Specification](docs/guides/sql-security-sandbox.md)
+- [Hypothesis Testing Multiplicity Correction Guide](docs/guides/multiplicity-corrections.md)
+- [LightGBM Architecture & Cross-Validation Manual](docs/guides/tree-model-hyperparameters.md)
+- [Synthetic Benchmark Ground Truth Generation Guide](docs/guides/synthetic-benchmark-generation.md)
+- [Production Docker Deployment & Hardening Manual](docs/guides/production-docker-deployment.md)
+- [Contributor Workflow & Release Checklist](docs/guides/contributor-workflow.md)
+- [REST & SSE API Endpoint Integration Reference](docs/guides/api-endpoint-reference.md)
 
 ---
 
