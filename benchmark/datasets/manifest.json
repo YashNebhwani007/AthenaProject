@@ -9,6 +9,7 @@
       "column_count": 8,
       "target_column": "churn",
       "task_type": "binary_classification",
+      "dictionary_path": "benchmark/datasets/telco_churn_dictionary.md",
       "description": "Customer demographic, service subscription, and churn indicator records."
     },
     {
@@ -32,6 +33,7 @@
       "column_count": 9,
       "target_column": "medhouseval",
       "task_type": "regression",
+      "dictionary_path": "benchmark/datasets/california_housing_dictionary.md",
       "description": "1990 California census housing metrics and median house values in $100k."
     },
     {
@@ -55,6 +57,7 @@
       "column_count": 6,
       "target_column": "high_income",
       "task_type": "binary_classification",
+      "dictionary_path": "benchmark/datasets/adult_income_dictionary.md",
       "description": "Census records predicting whether income exceeds $50K/yr."
     },
     {
@@ -78,6 +81,7 @@
       "column_count": 9,
       "target_column": "survived",
       "task_type": "binary_classification",
+      "dictionary_path": "benchmark/datasets/titanic_dictionary.md",
       "description": "Demographic and ticket details predicting passenger survival aboard Titanic."
     }
   ]
