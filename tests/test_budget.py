@@ -63,3 +63,16 @@ def test_budget_exceeds_timeout():
     with pytest.raises(BudgetExhausted) as exc_info:
         b.record_step(1)
     assert exc_info.value.limit_name == "timeout_seconds"
+
+
+def test_budget_zero_increments_preserve_counters():
+    """Verify recording 0 steps, 0 tools, and 0 tokens does not mutate counters."""
+    b = Budget(max_steps=5, max_tokens=100)
+    b.record_step(0)
+    b.record_tool_call(0)
+    b.record_tokens(0)
+
+    snap = b.to_dict()
+    assert snap["steps"] == 0
+    assert snap["tool_calls"] == 0
+    assert snap["tokens"] == 0
