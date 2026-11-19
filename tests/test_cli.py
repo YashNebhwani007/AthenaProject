@@ -83,3 +83,30 @@ async def test_run_audit_leakage_clean(capsys):
     captured = capsys.readouterr()
     assert "Leakage Audit Report:" in captured.out
     assert "Has Leakage: NO" in captured.out
+
+
+@pytest.mark.asyncio
+async def test_run_profile_missing_file_returns_error(capsys):
+    """Verify run_profile with a nonexistent file path returns exit code 1."""
+    code = await run_profile("non_existent_path_xyz.csv")
+    assert code == 1
+    captured = capsys.readouterr()
+    assert "Error:" in captured.err
+
+
+@pytest.mark.asyncio
+async def test_run_query_missing_file_returns_error(capsys):
+    """Verify run_query with a nonexistent file path returns exit code 1."""
+    code = await run_query("non_existent_path_xyz.csv", sql="SELECT 1")
+    assert code == 1
+    captured = capsys.readouterr()
+    assert "Error:" in captured.err
+
+
+@pytest.mark.asyncio
+async def test_run_audit_missing_file_returns_error(capsys):
+    """Verify run_audit_leakage with a nonexistent file path returns exit code 1."""
+    code = await run_audit_leakage("non_existent_path_xyz.csv", target="col")
+    assert code == 1
+    captured = capsys.readouterr()
+    assert "Error:" in captured.err
