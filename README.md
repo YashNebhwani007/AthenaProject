@@ -188,6 +188,13 @@ Key architectural decisions are documented under [`docs/adr/`](docs/adr/):
 - [ADR-11: Multi-Table Architecture](docs/adr/adr-11-multi-table.md)
 - [ADR-12: Session Persistence Strategy](docs/adr/adr-12-persistence.md)
 - [ADR-13: MCP Transport & Packaging](docs/adr/adr-13-mcp-transport.md)
+- [ADR-14: Predictive Inference Tool Design](docs/adr/adr-14-predictive-inference.md)
+- [ADR-15: Granular SQL Metric Extraction](docs/adr/adr-15-sql-metric-extraction.md)
+- [ADR-16: Session Auto-Recovery and API Resilience](docs/adr/adr-16-session-resilience.md)
+- [ADR-17: Verifier Repair Prompt Engineering](docs/adr/adr-17-verifier-repair-prompting.md)
+- [ADR-18: Multi-Model Benchmark Evaluation Strategy](docs/adr/adr-18-benchmark-evaluation-strategy.md)
+- [ADR-19: DuckDB Table Aliasing and AST Safety](docs/adr/adr-19-duckdb-table-aliasing.md)
+- [ADR-20: Frontend SSE Stream Normalization](docs/adr/adr-20-sse-stream-normalization.md)
 
 ---
 
