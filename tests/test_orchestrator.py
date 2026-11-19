@@ -229,3 +229,26 @@ async def test_orchestrator_event_callback_order(dataset_registry: DatasetRegist
     assert "report_draft" in event_sequence
     assert "verification" in event_sequence
     assert event_sequence[-1] == "final"
+
+
+@pytest.mark.asyncio
+async def test_orchestrator_handles_empty_question_gracefully(
+    dataset_registry: DatasetRegistry,
+):
+    """Verify orchestrator runs cleanly when passed an empty question string."""
+    mock_llm = MockSequenceLLM(
+        [
+            LLMResponse(
+                content='{"question": "", "tldr": "Default overview", "findings": []}',
+                is_final=True,
+            )
+        ]
+    )
+    orchestrator = Orchestrator(llm_client=mock_llm, registry=dataset_registry)
+    result = await orchestrator.run(
+        question="",
+        dataset_id="orch_test",
+    )
+    assert result.run_id.startswith("run_")
+    assert result.report is not None
+    assert result.report.tldr == "Default overview"
