@@ -329,6 +329,30 @@ def test_v3_causal_keyword_due_to_fails():
     assert any(not r.passed for r in res)
 
 
+def test_v3_causal_keyword_caused_by_fails():
+    finding = Finding(
+        id="f1",
+        text="The decrease in user churn was caused by plan revisions.",
+        claim_type=ClaimType.descriptive,
+        evidence=[],
+    )
+    rep = Report(question="Q", tldr="tl", findings=[finding])
+    res = check_v3_causal_language(rep)
+    assert any(not r.passed for r in res)
+
+
+def test_v3_causal_keyword_results_in_fails():
+    finding = Finding(
+        id="f1",
+        text="Higher contract duration results in superior customer retention.",
+        claim_type=ClaimType.comparative,
+        evidence=[],
+    )
+    rep = Report(question="Q", tldr="tl", findings=[finding])
+    res = check_v3_causal_language(rep)
+    assert any(not r.passed for r in res)
+
+
 # -------------------------------------------------------------
 # Rule V4 Tests: Linkage
 # -------------------------------------------------------------
