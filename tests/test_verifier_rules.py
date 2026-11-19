@@ -520,3 +520,27 @@ def test_v5_high_missingness_without_caveat_fails():
     rep = Report(question="Q", tldr="tl", findings=[], caveats=[])
     res = check_v5_data_quality_propagation(rep, [tr])
     assert any(not r.passed for r in res)
+
+
+def test_v5_boundary_exactly_30_percent_missingness_passes():
+    tr = make_tool_result(
+        "t1",
+        "profile_dataset",
+        [],
+        output={"columns": {"notes": {"null_percent": 30.0}}},
+    )
+    rep = Report(question="Q", tldr="tl", findings=[], caveats=[])
+    res = check_v5_data_quality_propagation(rep, [tr])
+    assert all(r.passed for r in res)
+
+
+def test_v5_boundary_slightly_above_30_percent_missingness_fails():
+    tr = make_tool_result(
+        "t1",
+        "profile_dataset",
+        [],
+        output={"columns": {"notes": {"null_percent": 30.1}}},
+    )
+    rep = Report(question="Q", tldr="tl", findings=[], caveats=[])
+    res = check_v5_data_quality_propagation(rep, [tr])
+    assert any(not r.passed for r in res)
