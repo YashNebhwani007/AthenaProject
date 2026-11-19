@@ -73,6 +73,14 @@
       "expected_ground_truth_script": "income_sql_02.py"
     },
     {
+      "id": "income_sql_03",
+      "category": "sql",
+      "dataset_id": "adult_income",
+      "question": "What is the average hours_per_week worked by individuals with high_income = 1?",
+      "expected_answer_type": "numeric",
+      "expected_ground_truth_script": "income_sql_03.py"
+    },
+    {
       "id": "titanic_sql_01",
       "category": "sql",
       "dataset_id": "titanic",
