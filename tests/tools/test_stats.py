@@ -143,3 +143,46 @@ async def test_bonferroni_correction(stats_registry: DatasetRegistry):
     assert res.status == ToolStatus.ok
     assert res.output["alpha"] == 0.05
     assert res.output["corrected_alpha"] == 0.01
+
+
+@pytest.mark.asyncio
+async def test_stats_test_chi_square_categorical(tmp_path: Path):
+    """Verify Chi-square test on 2x2 categorical contingency table."""
+    df = pd.DataFrame(
+        {
+            "gender": ["M"] * 50 + ["F"] * 50,
+            "purchased": ["yes"] * 35 + ["no"] * 15 + ["yes"] * 20 + ["no"] * 30,
+        }
+    )
+    file_path = tmp_path / "chi_data.csv"
+    df.to_csv(file_path, index=False)
+    reg = DatasetRegistry()
+    reg.register(dataset_id="chi_ds", file_path=file_path)
+
+    res = await stats_test(
+        test_name="chi_square",
+        dataset_id="chi_ds",
+        var1="gender",
+        var2="purchased",
+        registry=reg,
+    )
+    assert res.status == ToolStatus.ok
+    assert "p_value" in res.output
+    assert res.output["effect_size_type"] == "cramers_v"
+    assert 0.0 <= res.output["effect_size"] <= 1.0
+
+
+@pytest.mark.asyncio
+async def test_stats_test_mann_whitney_non_normal(stats_registry: DatasetRegistry):
+    """Verify Mann-Whitney U test execution on 2-group comparison."""
+    res = await stats_test(
+        test_name="mann_whitney_u",
+        dataset_id="stats_ds",
+        var1="num_normal",
+        var2="group_2",
+        registry=stats_registry,
+    )
+    assert res.status == ToolStatus.ok
+    assert res.output["test_name"] == "mann_whitney_u"
+    assert "p_value" in res.output
+    assert res.output["effect_size_type"] == "cohens_d"
