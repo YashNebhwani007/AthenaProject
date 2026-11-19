@@ -97,3 +97,23 @@ def test_format_report_and_render_markdown():
     formatted_dict = format_report(report)
     assert isinstance(formatted_dict, dict)
     assert formatted_dict["question"] == "What is customer retention?"
+
+
+def test_render_markdown_with_failed_verification():
+    """Verify Markdown report formatting displays attention badge on verification failures."""
+    report = Report(
+        question="What is churn?",
+        tldr="Churn is 25%.",
+        findings=[],
+    )
+    summary = VerificationSummary(
+        total_checks=4,
+        passed=3,
+        failed=1,
+        unverified_claims=1,
+        repairs_attempted=2,
+    )
+    md = render_markdown(report, summary)
+    assert "🟠 ATTENTION" in md
+    assert "Unverified claims: 1" in md
+    assert "Automated repair iterations: 2" in md
