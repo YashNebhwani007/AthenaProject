@@ -57,6 +57,12 @@ class AthenaClient:
             resp.raise_for_status()
             return resp.json()
 
+    async def get_demo_datasets(self) -> dict[str, Any]:
+        """List pre-packaged benchmark demo datasets available in Athena."""
+        resp = await self._client.get("/api/demo-datasets")
+        resp.raise_for_status()
+        return resp.json()
+
     async def get_profile(self, dataset_id: str) -> dict[str, Any]:
         """Retrieve dataset profile and column statistics."""
         resp = await self._client.get(f"/api/datasets/{dataset_id}/profile")
