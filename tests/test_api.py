@@ -33,7 +33,7 @@ def client():
 async def test_health_check(client: httpx.AsyncClient):
     res = await client.get("/health")
     assert res.status_code == 200
-    assert res.json() == {"status": "ok", "version": "0.3.0"}
+    assert res.json() == {"status": "ok", "version": "0.4.0"}
 
 
 @pytest.mark.asyncio

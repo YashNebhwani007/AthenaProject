@@ -2,7 +2,7 @@
 
 [![CI Test Suite](https://github.com/YashNebhwani007/AthenaProject/actions/workflows/ci.yml/badge.svg)](https://github.com/YashNebhwani007/AthenaProject)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![Version](https://img.shields.io/badge/version-0.3.0-blue.svg)](pyproject.toml)
+[![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)](pyproject.toml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
 Athena is an autonomous, evidence-grounded data science agent. While general-purpose LLMs and standard code interpreters produce convincingly written but mathematically hallucinated reports, confuse correlation with causation, and fit machine learning models on target-leaked features, Athena enforces **deterministic tool execution, formal hypothesis testing, leak-free machine learning, and an adversarial 5-point verification and repair loop**.
