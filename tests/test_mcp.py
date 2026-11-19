@@ -80,3 +80,11 @@ async def test_mcp_call_unknown_tool_returns_error() -> None:
         assert res.is_error or "not found" in res.content[0].text.lower()
     except Exception as exc:
         assert "not found" in str(exc).lower() or "unknown" in str(exc).lower()
+
+
+@pytest.mark.asyncio
+async def test_mcp_profile_missing_file_raises_tool_error() -> None:
+    """Verify calling profile_dataset with a non-existent file path raises an MCP tool error."""
+    with pytest.raises(Exception) as exc_info:
+        await server.call_tool("profile_dataset", {"dataset_path": "non_existent_file.csv"})
+    assert "profile_dataset" in str(exc_info.value) or "does not exist" in str(exc_info.value)
