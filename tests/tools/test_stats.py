@@ -215,3 +215,19 @@ async def test_stats_test_welch_t_test_unequal_sizes(tmp_path: Path):
     assert "p_value" in res.output
     assert res.output["p_value"] < 0.05
     assert res.output["effect_size_type"] == "cohens_d"
+
+
+@pytest.mark.asyncio
+async def test_stats_test_kruskal_wallis_three_groups(stats_registry: DatasetRegistry):
+    """Verify Kruskal-Wallis non-parametric test on 3 categorical groups."""
+    res = await stats_test(
+        test_name="kruskal_wallis",
+        dataset_id="stats_ds",
+        var1="num_normal",
+        var2="group_3",
+        registry=stats_registry,
+    )
+    assert res.status == ToolStatus.ok
+    assert res.output["test_name"] == "kruskal_wallis"
+    assert "p_value" in res.output
+    assert res.output["effect_size_type"] == "eta_squared"
