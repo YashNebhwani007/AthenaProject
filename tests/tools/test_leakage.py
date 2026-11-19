@@ -102,3 +102,31 @@ async def test_leakage_id_column_medium_severity(tmp_path: Path):
     assert len(id_findings) > 0
     assert id_findings[0]["column"] == "user_uuid"
     assert id_findings[0]["severity"] == "medium"
+
+
+@pytest.mark.asyncio
+async def test_leakage_temporal_column_low_severity(tmp_path: Path):
+    """Verify temporal column detection produces low-severity advisory finding."""
+    df = pd.DataFrame(
+        {
+            "event_date": ["2026-01-01", "2026-01-02", "2026-01-03"] * 20,
+            "feature": [i * 1.5 for i in range(60)],
+            "target": [i % 2 for i in range(60)],
+        }
+    )
+    file_path = tmp_path / "temporal_data.csv"
+    df.to_csv(file_path, index=False)
+
+    reg = DatasetRegistry()
+    reg.register(dataset_id="temporal_ds", file_path=file_path)
+
+    res = await check_leakage(
+        target_col="target",
+        dataset_id="temporal_ds",
+        registry=reg,
+    )
+
+    assert res.status == ToolStatus.ok
+    findings = [f for f in res.output["findings"] if f["check_name"] == "temporal_split"]
+    assert len(findings) == 1
+    assert findings[0]["severity"] == "low"
