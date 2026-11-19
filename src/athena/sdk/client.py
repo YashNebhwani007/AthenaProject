@@ -57,6 +57,18 @@ class AthenaClient:
             resp.raise_for_status()
             return resp.json()
 
+    async def get_profile(self, dataset_id: str) -> dict[str, Any]:
+        """Retrieve dataset profile and column statistics."""
+        resp = await self._client.get(f"/api/datasets/{dataset_id}/profile")
+        resp.raise_for_status()
+        return resp.json()
+
+    async def get_run(self, run_id: str) -> dict[str, Any]:
+        """Retrieve execution results and report for a completed run."""
+        resp = await self._client.get(f"/api/runs/{run_id}")
+        resp.raise_for_status()
+        return resp.json()
+
     async def create_session(self, dataset_id: str) -> dict[str, Any]:
         """Create a new analytical session for a dataset."""
         resp = await self._client.post("/api/sessions", json={"dataset_id": dataset_id})
