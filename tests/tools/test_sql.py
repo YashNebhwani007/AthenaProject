@@ -84,3 +84,29 @@ async def test_run_sql_rejects_malicious_query(dataset_registry: DatasetRegistry
     assert result.status == ToolStatus.error
     assert len(result.warnings) > 0
     assert "rejected" in result.warnings[0].lower() or "disallowed" in result.warnings[0].lower()
+
+
+@pytest.mark.asyncio
+async def test_run_sql_cte_and_case_expression(dataset_registry: DatasetRegistry):
+    """Verify run_sql supports Common Table Expressions (CTEs) and CASE WHEN expressions."""
+    query = """
+    WITH segmented AS (
+        SELECT
+            customer_id,
+            CASE
+                WHEN monthly_charges > 70 THEN 'high'
+                ELSE 'low'
+            END AS charge_tier
+        FROM customers
+    )
+    SELECT charge_tier, count(*) AS tier_count
+    FROM segmented
+    GROUP BY charge_tier
+    ORDER BY charge_tier
+    """
+    result = await run_sql(query=query, dataset_id="test_ds", registry=dataset_registry)
+
+    assert result.status == ToolStatus.ok
+    assert "charge_tier" in result.output["columns"]
+    assert "tier_count" in result.output["columns"]
+    assert len(result.output["rows"]) > 0
