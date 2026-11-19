@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+import pandas as pd
 import pytest
 
 from athena.data import DatasetRegistry
@@ -71,3 +72,33 @@ async def test_no_false_positives_on_clean_data(leakage_registry: DatasetRegistr
 
     metric_map = {m.name: m.value for m in res.metrics}
     assert metric_map["high_severity_leak_count"] == 0
+
+
+@pytest.mark.asyncio
+async def test_leakage_id_column_medium_severity(tmp_path: Path):
+    """Verify unique identifier columns are flagged with medium severity memorization risk."""
+    df = pd.DataFrame(
+        {
+            "user_uuid": [f"u_{i:04d}" for i in range(100)],
+            "feature_val": [i * 2.5 for i in range(100)],
+            "label": [i % 2 for i in range(100)],
+        }
+    )
+    file_path = tmp_path / "id_leak_data.csv"
+    df.to_csv(file_path, index=False)
+
+    reg = DatasetRegistry()
+    reg.register(dataset_id="id_leak_ds", file_path=file_path)
+
+    res = await check_leakage(
+        target_col="label",
+        dataset_id="id_leak_ds",
+        registry=reg,
+    )
+
+    assert res.status == ToolStatus.ok
+    out = res.output
+    id_findings = [f for f in out["findings"] if f["check_name"] == "id_columns"]
+    assert len(id_findings) > 0
+    assert id_findings[0]["column"] == "user_uuid"
+    assert id_findings[0]["severity"] == "medium"
