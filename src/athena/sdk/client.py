@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+from typing import Any
+
 import httpx
 
 
@@ -40,3 +43,15 @@ class AthenaClient:
         resp = await self._client.get("/health")
         resp.raise_for_status()
         return resp.json()
+
+    async def upload_dataset(self, file_path: str | Path) -> dict[str, Any]:
+        """Upload a CSV or Parquet dataset file and register with Athena."""
+        path = Path(file_path)
+        if not path.is_file():
+            raise FileNotFoundError(f"Dataset file not found: {path}")
+
+        with open(path, "rb") as f:
+            files = {"file": (path.name, f, "application/octet-stream")}
+            resp = await self._client.post("/api/datasets", files=files)
+            resp.raise_for_status()
+            return resp.json()
