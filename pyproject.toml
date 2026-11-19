@@ -42,6 +42,8 @@ dev = [
 [project.scripts]
 athena = "athena.cli:main"
 athena-mcp = "athena.mcp_server.server:main"
+athena-verify = "scripts.verify_datasets:main"
+athena-docs = "scripts.validate_docs:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/athena"]
