@@ -32,3 +32,26 @@ def test_structured_logging_json_output(capsys: pytest.CaptureFixture[str]):
     assert matched["count"] == 42
     assert matched["level"] == "info"
     assert "timestamp" in matched
+
+
+def test_structured_logging_warning_and_error(capsys: pytest.CaptureFixture[str]):
+    """Verify warning and error events contain level and custom metadata."""
+    logger = get_logger("error_module")
+    logger.warning("warning_event", issue="suboptimal_alpha")
+    logger.error("error_event", status_code=500, detail="Database failure")
+
+    captured = capsys.readouterr()
+    lines = [
+        json.loads(line)
+        for line in captured.err.splitlines()
+        if line.strip() and line.strip().startswith("{")
+    ]
+    events = {entry["event"]: entry for entry in lines}
+
+    assert "warning_event" in events
+    assert events["warning_event"]["level"] == "warning"
+    assert events["warning_event"]["issue"] == "suboptimal_alpha"
+
+    assert "error_event" in events
+    assert events["error_event"]["level"] == "error"
+    assert events["error_event"]["status_code"] == 500
