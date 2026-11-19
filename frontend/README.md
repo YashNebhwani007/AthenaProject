@@ -1,32 +1,47 @@
-# React + TypeScript + Vite
+# Athena React Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+The Athena frontend is a React 18 single-page application engineered for real-time observability
+of autonomous analytical agent trajectories and interactive exploration of decision reports.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 1. Quick Start
 
-## React Compiler
+```bash
+cd frontend
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+# Install Node dependencies
+npm install
 
-## Expanding the Oxlint configuration
+# Run local development server with Vite HMR
+npm run dev
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+# Build production bundle (emits to dist/)
+npm run build
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+---
+
+## 2. Directory Structure
+
+```
+frontend/src/
+├── api/             # HTTP client and TypeScript interfaces
+│   ├── client.ts    # Fetch and SSE stream listeners
+│   └── types.ts     # Data models and discriminated union types
+├── components/      # Modular UI components
+│   ├── BenchmarkView.tsx   # Benchmark scorecards and evaluation matrices
+│   ├── DatasetPicker.tsx   # Demo dataset selection dropdown
+│   ├── ExecutionTrace.tsx  # Step-by-step tool timeline and token meters
+│   └── ReportView.tsx      # Verified markdown report with KaTeX
+├── styles/          # Tailwind configuration and theme tokens
+├── App.tsx          # Root application workspace layout
+└── main.tsx         # React DOM mounting entrypoint
+```
+
+---
+
+## 3. Streaming Event Ingestion
+The UI connects to `/api/sessions/{id}/ask` using Server-Sent Events (SSE). Incoming events are
+parsed into typed payloads via `frontend/src/api/types.ts` and update the active trace timeline
+without blocking the main JavaScript rendering thread.
