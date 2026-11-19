@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import AsyncGenerator
 from pathlib import Path
 from typing import Any
 
@@ -55,3 +56,37 @@ class AthenaClient:
             resp = await self._client.post("/api/datasets", files=files)
             resp.raise_for_status()
             return resp.json()
+
+    async def create_session(self, dataset_id: str) -> dict[str, Any]:
+        """Create a new analytical session for a dataset."""
+        resp = await self._client.post("/api/sessions", json={"dataset_id": dataset_id})
+        resp.raise_for_status()
+        return resp.json()
+
+    async def ask_stream(
+        self, session_id: str, question: str
+    ) -> AsyncGenerator[dict[str, Any], None]:
+        """Stream analytical execution events from session."""
+        import json
+
+        async with self._client.stream(
+            "POST",
+            f"/api/sessions/{session_id}/ask",
+            json={"question": question},
+            timeout=120.0,
+        ) as response:
+            response.raise_for_status()
+            current_event = "message"
+            async for line in response.aiter_lines():
+                line = line.strip()
+                if not line:
+                    continue
+                if line.startswith("event:"):
+                    current_event = line.replace("event:", "", 1).strip()
+                elif line.startswith("data:"):
+                    raw_data = line.replace("data:", "", 1).strip()
+                    try:
+                        parsed = json.loads(raw_data)
+                    except json.JSONDecodeError:
+                        parsed = raw_data
+                    yield {"event": current_event, "data": parsed}
