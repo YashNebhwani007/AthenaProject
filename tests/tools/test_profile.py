@@ -60,3 +60,23 @@ async def test_profile_dataset_expectations(fixture_path: Path):
     assert "constant_status" in warnings_text
 
     registry.cleanup()
+
+
+@pytest.mark.asyncio
+async def test_profile_dataset_single_row(tmp_path: Path):
+    """Verify profiling a dataset with exactly one row executes cleanly without errors."""
+    import pandas as pd
+
+    df = pd.DataFrame({"id": [1], "feature": [42.0], "label": [0]})
+    file_path = tmp_path / "single_row.csv"
+    df.to_csv(file_path, index=False)
+
+    reg = DatasetRegistry()
+    reg.register(dataset_id="single_row_ds", file_path=file_path)
+
+    res = await profile_dataset(dataset_id="single_row_ds", registry=reg)
+    assert res.status == ToolStatus.ok
+    assert res.output["row_count"] == 1
+    assert res.output["column_count"] == 3
+    assert res.output["duplicate_rows"] == 0
+    reg.cleanup()
