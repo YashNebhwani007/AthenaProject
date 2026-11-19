@@ -42,7 +42,15 @@ def create_parser() -> argparse.ArgumentParser:
 
 
 async def run_profile(file_path: str, as_json: bool = False) -> int:
-    """Profile a dataset and print summary results."""
+    """Profile a dataset and print summary results.
+
+    Args:
+        file_path: Relative or absolute path to dataset CSV or Parquet.
+        as_json: Whether to emit raw structured JSON instead of formatted text.
+
+    Returns:
+        Process exit code (0 for success, 1 on error).
+    """
     path = Path(file_path).resolve()
     if not path.exists():
         sys.stderr.write(f"Error: Dataset file '{path}' not found.\n")
@@ -70,7 +78,16 @@ async def run_profile(file_path: str, as_json: bool = False) -> int:
 
 
 async def run_query(file_path: str, sql: str, limit: int = 50) -> int:
-    """Execute SQL query against dataset file."""
+    """Execute SQL query against dataset file.
+
+    Args:
+        file_path: Relative or absolute path to dataset CSV or Parquet.
+        sql: AST-validated read-only SQL query string.
+        limit: Maximum number of rows to print in formatted output.
+
+    Returns:
+        Process exit code (0 for success, 1 on error).
+    """
     path = Path(file_path).resolve()
     if not path.exists():
         sys.stderr.write(f"Error: Dataset file '{path}' not found.\n")
@@ -101,7 +118,15 @@ async def run_query(file_path: str, sql: str, limit: int = 50) -> int:
 
 
 async def run_audit_leakage(file_path: str, target: str) -> int:
-    """Audit dataset for target leakage risks across 6 heuristic checks."""
+    """Audit dataset for target leakage risks across 6 heuristic checks.
+
+    Args:
+        file_path: Relative or absolute path to dataset CSV or Parquet.
+        target: Target label column name to audit against.
+
+    Returns:
+        Process exit code (0 for success, 1 on error).
+    """
     path = Path(file_path).resolve()
     if not path.exists():
         sys.stderr.write(f"Error: Dataset file '{path}' not found.\n")
