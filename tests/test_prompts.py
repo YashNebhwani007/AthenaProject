@@ -115,3 +115,34 @@ def test_build_context_message_with_many_columns():
     assert "wide_ds" in msg
     assert "col_0" in msg
     assert "col_24" in msg
+
+
+def test_build_context_message_with_special_characters():
+    """Verify build_context_message safely handles column names with special symbols."""
+    columns = [
+        ColumnInfo(
+            name="col/with%special&chars", dtype="VARCHAR", sample_values=["a'b", 'c"d']
+        ),
+    ]
+    handle = DatasetHandle(
+        dataset_id="special_ds",
+        table_name="tbl_special",
+        file_path="data/special.csv",
+        format="csv",
+        row_count=10,
+        column_count=1,
+        columns=columns,
+    )
+    profile_res = ToolResult(
+        id="t1",
+        tool="profile",
+        status=ToolStatus.ok,
+        output={
+            "quality_warnings": ["Warning with 'single' and \"double\" quotes."],
+            "suspected_targets": [],
+        },
+    )
+    msg = build_context_message(handle, profile_res)
+    assert "col/with%special&chars" in msg
+    assert "tbl_special" in msg
+    assert 'Warning with \'single\' and "double" quotes.' in msg
