@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from athena.cli import create_parser, run_profile, run_query
+from athena.cli import create_parser, run_audit_leakage, run_profile, run_query
 
 
 def test_cli_parser_profile_args():
@@ -62,3 +62,24 @@ async def test_run_query_execution(capsys):
     captured = capsys.readouterr()
     assert "customer_id\tmonthly_charges" in captured.out
     assert "rows returned" in captured.out
+
+
+def test_cli_parser_audit_args():
+    """Verify CLI parser parses audit-leakage arguments correctly."""
+    parser = create_parser()
+    args = parser.parse_args(["audit-leakage", "data.csv", "--target", "churn"])
+    assert args.command == "audit-leakage"
+    assert args.file == "data.csv"
+    assert args.target == "churn"
+
+
+@pytest.mark.asyncio
+async def test_run_audit_leakage_clean(capsys):
+    """Verify run_audit_leakage on clean dataset returns zero high-severity findings."""
+    bench_base = Path("benchmark/datasets/california_housing.csv").resolve()
+    code = await run_audit_leakage(str(bench_base), target="medhouseval")
+    assert code == 0
+
+    captured = capsys.readouterr()
+    assert "Leakage Audit Report:" in captured.out
+    assert "Has Leakage: NO" in captured.out
