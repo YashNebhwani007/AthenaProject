@@ -120,3 +120,24 @@ async def test_ask_question_auto_recovers_stale_session(client: httpx.AsyncClien
     assert res_ask.status_code == 200
     assert "text/event-stream" in res_ask.headers["content-type"]
     assert "sess_stale_1234" in SESSIONS
+
+
+@pytest.mark.asyncio
+async def test_api_run_not_found(client: httpx.AsyncClient):
+    """Verify requesting a non-existent run_id returns HTTP 404."""
+    res = await client.get("/api/runs/non_existent_run_999")
+    assert res.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_api_dataset_profile_not_found(client: httpx.AsyncClient):
+    """Verify requesting a profile for a non-existent dataset returns HTTP 404."""
+    res = await client.get("/api/datasets/completely_non_existent_ds/profile")
+    assert res.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_api_create_session_missing_dataset_id_returns_422(client: httpx.AsyncClient):
+    """Verify creating session with missing required dataset_id returns HTTP 422."""
+    res = await client.post("/api/sessions", json={})
+    assert res.status_code == 422

@@ -90,6 +90,14 @@ class DatasetRegistry:
         """Check if dataset ID is registered."""
         return dataset_id in self._datasets
 
+    def __iter__(self):
+        """Iterate over registered dataset IDs."""
+        return iter(self._datasets)
+
+    def __len__(self) -> int:
+        """Return total number of registered datasets."""
+        return len(self._datasets)
+
     def has(self, dataset_id: str) -> bool:
         """Check if dataset ID is registered.
 

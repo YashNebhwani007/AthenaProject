@@ -68,11 +68,10 @@ async def upload_dataset(file: UploadFile = File(...)) -> dict[str, Any]:
 @router.get("/datasets/{dataset_id}/profile")
 async def get_dataset_profile(dataset_id: str) -> dict[str, Any]:
     """Retrieve full exploratory profile and data quality warnings for a dataset."""
-    try:
-        profile = await profile_dataset(dataset_id=dataset_id, registry=default_registry)
-        return {"dataset_id": dataset_id, "profile": profile.output}
-    except Exception as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    if dataset_id not in default_registry:
+        raise HTTPException(status_code=404, detail=f"Dataset '{dataset_id}' not found")
+    profile = await profile_dataset(dataset_id=dataset_id, registry=default_registry)
+    return {"dataset_id": dataset_id, "profile": profile.output}
 
 
 @router.get("/demo-datasets")
