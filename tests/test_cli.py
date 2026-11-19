@@ -110,3 +110,11 @@ async def test_run_audit_missing_file_returns_error(capsys):
     assert code == 1
     captured = capsys.readouterr()
     assert "Error:" in captured.err
+
+
+def test_verify_datasets_script_success():
+    """Verify scripts.verify_datasets successfully validates all benchmark datasets."""
+    from scripts.verify_datasets import verify_datasets
+
+    code = verify_datasets()
+    assert code == 0
