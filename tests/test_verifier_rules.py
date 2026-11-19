@@ -120,6 +120,42 @@ def test_v1_malformed_placeholder_fails():
     assert any(not r.passed for r in res)
 
 
+def test_v1_percentage_conversion_and_relative_tolerance_passes():
+    tr = make_tool_result("t1", "profile", [Metric(name="rate", value=0.684, unit="")])
+    finding = Finding(
+        id="f1",
+        text="The computed retention rate was 68.4% across the cohort.",
+        claim_type=ClaimType.descriptive,
+        evidence=[EvidenceRef(tool_result_id="t1", metric="rate")],
+    )
+    rep = Report(question="Q", tldr="tl", findings=[finding])
+    res = check_v1_numeric_grounding(rep, [tr])
+    assert all(r.passed for r in res)
+
+
+def test_v1_multiple_grounded_numbers_in_single_finding_passes():
+    tr = make_tool_result(
+        "t1",
+        "profile",
+        [
+            Metric(name="metric_a", value=42.5, unit=""),
+            Metric(name="metric_b", value=18.2, unit=""),
+        ],
+    )
+    finding = Finding(
+        id="f1",
+        text="Metric A reached 42.5 while Metric B recorded 18.2.",
+        claim_type=ClaimType.descriptive,
+        evidence=[
+            EvidenceRef(tool_result_id="t1", metric="metric_a"),
+            EvidenceRef(tool_result_id="t1", metric="metric_b"),
+        ],
+    )
+    rep = Report(question="Q", tldr="tl", findings=[finding])
+    res = check_v1_numeric_grounding(rep, [tr])
+    assert all(r.passed for r in res)
+
+
 # -------------------------------------------------------------
 # Rule V2 Tests: Claim-Evidence Consistency
 # -------------------------------------------------------------
