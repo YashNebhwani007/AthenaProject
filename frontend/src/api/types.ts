@@ -48,6 +48,30 @@ export interface Finding {
 
 export type Confidence = 'low' | 'medium' | 'high'
 
+export interface ConfidenceTierMeta {
+  badgeColor: string
+  label: string
+  description: string
+}
+
+export const CONFIDENCE_TIERS: Record<Confidence, ConfidenceTierMeta> = {
+  high: {
+    badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    label: 'High Confidence',
+    description: 'Fully grounded in statistical significance and zero data quality caveats.',
+  },
+  medium: {
+    badgeColor: 'bg-amber-50 text-amber-700 border-amber-200',
+    label: 'Medium Confidence',
+    description: 'Statistically supported with minor missingness or sample constraints.',
+  },
+  low: {
+    badgeColor: 'bg-rose-50 text-rose-700 border-rose-200',
+    label: 'Low Confidence',
+    description: 'Observational correlation or exploratory recommendation requiring review.',
+  },
+}
+
 export interface Recommendation {
   text: string
   supported_by: string[]
