@@ -88,3 +88,30 @@ def test_validate_report_json_schema():
     report = validate_report_json_schema(data)
     assert report.question == "What is the churn rate?"
     assert report.findings[0].id == "f1"
+
+
+def test_build_context_message_with_many_columns():
+    """Verify build_context_message handles datasets with many columns gracefully."""
+    columns = [
+        ColumnInfo(name=f"col_{i}", dtype="DOUBLE", sample_values=[i * 1.1])
+        for i in range(25)
+    ]
+    handle = DatasetHandle(
+        dataset_id="wide_ds",
+        table_name="tbl_wide",
+        file_path="data/wide.csv",
+        format="csv",
+        row_count=1000,
+        column_count=25,
+        columns=columns,
+    )
+    profile_res = ToolResult(
+        id="t1",
+        tool="profile",
+        status=ToolStatus.ok,
+        output={"quality_warnings": [], "suspected_targets": []},
+    )
+    msg = build_context_message(handle, profile_res)
+    assert "wide_ds" in msg
+    assert "col_0" in msg
+    assert "col_24" in msg
