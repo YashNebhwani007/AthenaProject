@@ -72,3 +72,6 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
+
+# Frontend source helpers (overrides the Python lib/ rule above)
+!frontend/src/lib/

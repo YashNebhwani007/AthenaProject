@@ -1,282 +1,131 @@
+import { AnimatePresence, motion } from 'framer-motion'
 import React, { useState } from 'react'
-import { createSession, getProfile, askQuestionStream } from './api/client'
-import type { DatasetProfile, Report, ToolResult, VerificationSummary } from './api/types'
+import { BenchmarkView } from './components/BenchmarkView'
 import { DatasetPanel } from './components/DatasetPanel'
+import { ExecutionTrace } from './components/ExecutionTrace'
+import { type AppTab, Header } from './components/Header'
+import { MissionStatus } from './components/MissionStatus'
 import { ProfileCard } from './components/ProfileCard'
 import { QueryInput } from './components/QueryInput'
 import { ReportView } from './components/ReportView'
-import { ExecutionTrace } from './components/ExecutionTrace'
-import { BenchmarkView } from './components/BenchmarkView'
+import { InspectorProvider } from './components/ToolInspector'
+import { useAthenaSession } from './hooks/useAthenaSession'
+import { formatCompact, formatMs } from './lib/format'
+
+const pageTransition = {
+  initial: { opacity: 0, y: 10, filter: 'blur(6px)' },
+  animate: { opacity: 1, y: 0, filter: 'blur(0px)' },
+  exit: { opacity: 0, y: -10, filter: 'blur(6px)' },
+  transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] as const },
+}
 
 export const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'workspace' | 'benchmark'>('workspace')
-
-  // Dataset & Session state
-  const [selectedDatasetId, setSelectedDatasetId] = useState<string | null>(null)
-  const [profile, setProfile] = useState<DatasetProfile | null>(null)
-  const [isLoadingProfile, setIsLoadingProfile] = useState(false)
-  const [sessionId, setSessionId] = useState<string | null>(null)
-
-  // Execution & Report state
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [currentStepMsg, setCurrentStepMsg] = useState<string | null>(null)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [trace, setTrace] = useState<ToolResult[]>([])
-  const [report, setReport] = useState<Report | null>(null)
-  const [verification, setVerification] = useState<VerificationSummary | null>(null)
-  const [cancelStream, setCancelStream] = useState<(() => void) | null>(null)
-  const [clarification, setClarification] = useState<string | null>(null)
-
-  const handleDatasetSelected = async (datasetId: string, providedProfile?: DatasetProfile) => {
-    setSelectedDatasetId(datasetId)
-    setReport(null)
-    setTrace([])
-    setVerification(null)
-    setClarification(null)
-    setErrorMessage(null)
-
-    // Load profile if not provided directly
-    if (providedProfile) {
-      setProfile(providedProfile)
-    } else {
-      setIsLoadingProfile(true)
-      try {
-        const res = await getProfile(datasetId)
-        setProfile(res.profile)
-      } catch (err) {
-        console.error('Failed to load profile:', err)
-      } finally {
-        setIsLoadingProfile(false)
-      }
-    }
-
-    // Create session for dataset
-    try {
-      const sess = await createSession(datasetId)
-      setSessionId(sess.session_id)
-    } catch (err) {
-      console.error('Failed to create session:', err)
-    }
-  }
-
-  const handleAsk = async (question: string) => {
-    if (!selectedDatasetId) {
-      alert('Please select or upload a dataset before asking a question.')
-      return
-    }
-
-    let activeSessionId = sessionId
-    if (!activeSessionId) {
-      try {
-        const sess = await createSession(selectedDatasetId)
-        activeSessionId = sess.session_id
-        setSessionId(sess.session_id)
-      } catch (err) {
-        console.error('Failed to create session:', err)
-        alert('Could not initialize session for query.')
-        return
-      }
-    }
-
-    setIsAnalyzing(true)
-    setCurrentStepMsg('Initializing analysis plan...')
-    setReport(null)
-    setVerification(null)
-    setTrace([])
-    setClarification(null)
-    setErrorMessage(null)
-
-    const startStreaming = (targetSessionId: string, isRetry = false) => {
-      const cancelFn = askQuestionStream(
-        targetSessionId,
-        question,
-        (msg) => {
-          if (msg.event === 'tool_result') {
-            const toolResult = msg.data as ToolResult
-            setTrace((prev) => [...prev, toolResult])
-            setCurrentStepMsg(`Completed tool: ${toolResult.tool}`)
-          } else if (msg.event === 'report_draft') {
-            if (msg.data?.report) {
-              setReport(msg.data.report)
-            }
-            setCurrentStepMsg('Drafting findings and computing grounded evidence...')
-          } else if (msg.event === 'verification') {
-            if (msg.data?.summary) {
-              setVerification(msg.data.summary)
-            }
-            setCurrentStepMsg('Running 5-point rigorous verification rules...')
-          } else if (msg.event === 'final') {
-            if (msg.data?.run_result) {
-              const run = msg.data.run_result
-              if (run.report) setReport(run.report)
-              if (run.verification) setVerification(run.verification)
-              if (run.trace && run.trace.length > 0) {
-                setTrace(run.trace)
-              }
-            } else if (msg.data?.report) {
-              setReport(msg.data.report)
-              if (msg.data.verification) setVerification(msg.data.verification)
-            }
-            setIsAnalyzing(false)
-            setCurrentStepMsg(null)
-          } else if (msg.event === 'clarification_needed') {
-            setClarification(msg.data?.message || 'Further dataset clarification required.')
-            setIsAnalyzing(false)
-            setCurrentStepMsg(null)
-          } else if (msg.event === 'error') {
-            const errMsg = msg.data?.error || msg.data?.message || JSON.stringify(msg.data)
-            setErrorMessage(errMsg)
-            setCurrentStepMsg(`Error: ${errMsg}`)
-            setIsAnalyzing(false)
-          }
-        },
-        () => {
-          setIsAnalyzing(false)
-          setCurrentStepMsg(null)
-        },
-        async (err) => {
-          // If session expired or missing, auto-recreate once and retry
-          if (
-            !isRetry &&
-            selectedDatasetId &&
-            (err?.message?.includes('404') || err?.message?.includes('Session'))
-          ) {
-            try {
-              setCurrentStepMsg('Re-establishing analytical session...')
-              const sess = await createSession(selectedDatasetId)
-              setSessionId(sess.session_id)
-              startStreaming(sess.session_id, true)
-              return
-            } catch (reErr) {
-              console.error('Session reconnection failed:', reErr)
-            }
-          }
-          console.error('SSE Stream error:', err)
-          const errText = err?.message || 'Analysis connection interrupted.'
-          setErrorMessage(errText)
-          setIsAnalyzing(false)
-          setCurrentStepMsg(`Error: ${errText}`)
-        },
-        selectedDatasetId
-      )
-      setCancelStream(() => cancelFn)
-    }
-
-    startStreaming(activeSessionId)
-  }
-
-  const handleCancel = () => {
-    if (cancelStream) {
-      cancelStream()
-      setCancelStream(null)
-    }
-    setIsAnalyzing(false)
-    setCurrentStepMsg('Analysis canceled.')
-  }
+  const [activeTab, setActiveTab] = useState<AppTab>('workspace')
+  const s = useAthenaSession()
 
   return (
-    <div className="app-container">
-      {/* Top Application Header */}
-      <header className="app-header">
-        <div className="brand">
-          <div className="brand-logo">A</div>
-          <div>
-            <span className="brand-title">ATHENA</span>
-            <span className="brand-badge" style={{ marginLeft: '10px' }}>
-              Autonomous Data Scientist
-            </span>
+    <InspectorProvider>
+      <div className="cockpit-backdrop" aria-hidden>
+        <div className="cockpit-orb -left-40 top-20 size-[520px] bg-brand/[0.10]" />
+        <div className="cockpit-orb -right-32 top-[40%] size-[460px] bg-neon/[0.06] [animation-delay:-6s]" />
+      </div>
+      <div className="scanlines" aria-hidden />
+
+      <div className="relative z-10 flex min-h-full flex-col">
+        <Header activeTab={activeTab} onTabChange={setActiveTab} isAnalyzing={s.isAnalyzing} />
+
+        <AnimatePresence mode="wait">
+          {activeTab === 'benchmark' ? (
+            <motion.main
+              key="benchmark"
+              {...pageTransition}
+              className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-6 lg:px-6"
+            >
+              <BenchmarkView />
+            </motion.main>
+          ) : (
+            <motion.main
+              key="workspace"
+              {...pageTransition}
+              className="mx-auto grid w-full max-w-[1920px] flex-1 grid-cols-[minmax(0,1fr)] gap-4 px-4 py-4 lg:grid-cols-[300px_minmax(0,1fr)] lg:px-6 xl:grid-cols-[300px_minmax(0,1fr)_380px] xl:overflow-hidden xl:h-[calc(100vh-56px-32px)]"
+            >
+              {/* Left: data sources & health */}
+              <aside className="flex min-w-0 flex-col gap-4 xl:overflow-y-auto xl:pb-2 xl:pr-1">
+                <DatasetPanel selectedDatasetId={s.selectedDatasetId} onDatasetSelected={s.selectDataset} />
+                <ProfileCard datasetId={s.selectedDatasetId} profile={s.profile} isLoading={s.isLoadingProfile} />
+              </aside>
+
+              {/* Center: command + report */}
+              <section className="flex min-w-0 flex-col gap-4 xl:overflow-y-auto xl:pb-6 xl:pr-1">
+                <QueryInput
+                  onSubmit={s.ask}
+                  isLoading={s.isAnalyzing}
+                  onCancel={s.cancel}
+                  clarificationMessage={s.clarification}
+                  datasetId={s.selectedDatasetId}
+                />
+                <MissionStatus
+                  stage={s.stage}
+                  message={s.currentStepMsg}
+                  question={s.question}
+                  startedAt={s.startedAt}
+                  endedAt={s.endedAt}
+                  toolCount={s.trace.length}
+                  verifyIterations={s.verifyIterations}
+                />
+                <ReportView
+                  report={s.report}
+                  verification={s.verification}
+                  trace={s.trace}
+                  isAnalyzing={s.isAnalyzing}
+                  errorMessage={s.errorMessage}
+                  isDraft={s.isDraft}
+                  runMeta={s.runMeta}
+                  hasDataset={!!s.selectedDatasetId}
+                />
+              </section>
+
+              {/* Right: flight recorder */}
+              <aside className="min-h-0 min-w-0 lg:col-span-2 xl:col-span-1 xl:pb-2">
+                <ExecutionTrace
+                  trace={s.trace}
+                  isExecuting={s.isAnalyzing}
+                  currentStepMessage={s.currentStepMsg}
+                  errorMessage={s.errorMessage}
+                  pendingStep={s.pendingStep}
+                  log={s.log}
+                />
+              </aside>
+            </motion.main>
+          )}
+        </AnimatePresence>
+
+        {/* Telemetry footer */}
+        <footer className="sticky bottom-0 z-30 border-t border-line bg-abyss/80 backdrop-blur-xl">
+          <div className="mx-auto flex h-8 max-w-[1920px] items-center gap-4 overflow-hidden px-4 font-mono text-[10px] text-ink-mute lg:px-6">
+            <FootItem k="dataset" v={s.selectedDatasetId ?? '—'} />
+            <FootItem k="session" v={s.sessionId ? s.sessionId.slice(0, 12) : '—'} />
+            <FootItem k="stage" v={s.stage} accent={s.isAnalyzing} />
+            <FootItem k="tools" v={String(s.trace.length)} />
+            {s.runMeta && (
+              <>
+                <FootItem k="runtime" v={formatMs(s.runMeta.total_runtime_ms)} />
+                <FootItem k="tokens" v={formatCompact(s.runMeta.total_tokens)} />
+              </>
+            )}
+            <span className="ml-auto hidden sm:inline">ATHENA · deterministic tools · verified claims</span>
           </div>
-        </div>
-
-        <nav className="header-tabs">
-          <button
-            type="button"
-            className={`tab-btn ${activeTab === 'workspace' ? 'active' : ''}`}
-            onClick={() => setActiveTab('workspace')}
-          >
-            ⚡ Analysis Workspace
-          </button>
-          <button
-            type="button"
-            className={`tab-btn ${activeTab === 'benchmark' ? 'active' : ''}`}
-            onClick={() => setActiveTab('benchmark')}
-          >
-            📊 Benchmark Evaluation
-          </button>
-        </nav>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-            Dual-Model • Auto-Verified
-          </span>
-          <a
-            href="https://github.com"
-            target="_blank"
-            rel="noreferrer"
-            style={{
-              color: 'var(--text-secondary)',
-              textDecoration: 'none',
-              fontSize: '13px',
-              padding: '6px 12px',
-              borderRadius: 'var(--radius-sm)',
-              border: '1px solid var(--border-subtle)',
-            }}
-          >
-            GitHub
-          </a>
-        </div>
-      </header>
-
-      {/* Main Tab Content */}
-      {activeTab === 'benchmark' ? (
-        <main style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto', width: '100%' }}>
-          <BenchmarkView />
-        </main>
-      ) : (
-        <main className="main-layout">
-          {/* Left Column: Dataset & Data Quality Profile */}
-          <aside style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <DatasetPanel
-              selectedDatasetId={selectedDatasetId}
-              onDatasetSelected={handleDatasetSelected}
-            />
-            <ProfileCard
-              datasetId={selectedDatasetId}
-              profile={profile}
-              isLoading={isLoadingProfile}
-            />
-          </aside>
-
-          {/* Center Column: Query Input & Verified Analytical Report */}
-          <section style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <QueryInput
-              onSubmit={handleAsk}
-              isLoading={isAnalyzing}
-              onCancel={handleCancel}
-              clarificationMessage={clarification}
-            />
-            <ReportView
-              report={report}
-              verification={verification}
-              trace={trace}
-              isAnalyzing={isAnalyzing}
-              errorMessage={errorMessage}
-            />
-          </section>
-
-          {/* Right Column: Execution Trace Timeline */}
-          <aside style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <ExecutionTrace
-              trace={trace}
-              isExecuting={isAnalyzing}
-              currentStepMessage={currentStepMsg}
-              errorMessage={errorMessage}
-            />
-          </aside>
-        </main>
-      )}
-    </div>
+        </footer>
+      </div>
+    </InspectorProvider>
   )
 }
+
+const FootItem: React.FC<{ k: string; v: string; accent?: boolean }> = ({ k, v, accent }) => (
+  <span className="flex shrink-0 items-center gap-1.5">
+    <span className="uppercase tracking-[0.14em]">{k}</span>
+    <span className={accent ? 'text-neon' : 'text-ink-dim'}>{v}</span>
+  </span>
+)
 
 export default App

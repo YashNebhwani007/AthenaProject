@@ -1,5 +1,13 @@
-import React, { useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { ArrowUpRight, Link2, Unlink } from 'lucide-react'
+import React, { useRef, useState } from 'react'
 import type { EvidenceRef, ToolResult } from '../api/types'
+import { cn } from '../lib/cn'
+import { formatMs, formatValue } from '../lib/format'
+import { toolMeta } from '../lib/tools'
+import { useInspector } from './ToolInspector'
+import { toneText } from '../lib/tones'
+
 
 interface EvidenceChipProps {
   evidence: EvidenceRef
@@ -7,119 +15,122 @@ interface EvidenceChipProps {
 }
 
 export const EvidenceChip: React.FC<EvidenceChipProps> = ({ evidence, trace }) => {
-  const [isOpen, setIsOpen] = useState(false)
+  const [hover, setHover] = useState(false)
+  const [below, setBelow] = useState(false)
+  const ref = useRef<HTMLSpanElement>(null)
+  const inspector = useInspector()
+  const timer = useRef<number | undefined>(undefined)
 
   const toolResult = trace.find((t) => t.id === evidence.tool_result_id)
   const metricObj = toolResult?.metrics?.find((m) => m.name === evidence.metric)
+  const resolved = !!metricObj
+  const meta = toolResult ? toolMeta(toolResult.tool) : null
+  const Icon = meta?.icon ?? Unlink
+
+  const show = () => {
+    window.clearTimeout(timer.current)
+    const r = ref.current?.getBoundingClientRect()
+    setBelow(!!r && r.top < 240)
+    setHover(true)
+  }
+  const hide = () => {
+    timer.current = window.setTimeout(() => setHover(false), 120)
+  }
 
   return (
-    <div style={{ display: 'inline-block', position: 'relative', margin: '2px 4px' }}>
+    <span ref={ref} className="relative inline-flex" onMouseEnter={show} onMouseLeave={hide}>
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        style={{
-          background: 'rgba(99, 102, 241, 0.12)',
-          border: '1px solid rgba(99, 102, 241, 0.3)',
-          color: 'var(--accent-indigo)',
-          borderRadius: 'var(--radius-full)',
-          padding: '2px 8px',
-          fontSize: '11px',
-          fontFamily: 'var(--font-mono)',
-          fontWeight: 600,
-          cursor: 'pointer',
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '4px',
-          transition: 'all 0.15s ease',
-        }}
+        type="button"
+        onFocus={show}
+        onBlur={hide}
+        onClick={() => toolResult && inspector.open(toolResult, evidence.metric)}
+        disabled={!toolResult}
+        className={cn(
+          'inline-flex max-w-full items-center gap-1.5 rounded-lg border px-2 py-[3px] font-mono text-[10.5px] transition-all duration-200',
+          resolved
+            ? 'border-neon/25 bg-neon/[0.06] text-cyan-200 hover:border-neon/50 hover:bg-neon/[0.12] hover:shadow-[0_0_14px_-4px_var(--color-neon)]'
+            : 'border-alert/30 bg-alert/[0.06] text-rose-300',
+        )}
       >
-        <span>🔍 {evidence.tool_result_id}.{evidence.metric}</span>
-        {metricObj && <span style={{ color: 'var(--text-primary)' }}>= {String(metricObj.value)}</span>}
+        <Icon className={cn('size-3 shrink-0', meta ? toneText[meta.tone] : 'text-rose-400')} />
+        <span className="truncate text-ink-mute">{evidence.tool_result_id}.</span>
+        <span className="truncate">{evidence.metric}</span>
+        {metricObj && (
+          <>
+            <span className="text-ink-mute">=</span>
+            <span className="font-semibold text-ink">{formatValue(metricObj.value)}</span>
+          </>
+        )}
       </button>
 
-      {isOpen && (
-        <div
-          style={{
-            position: 'absolute',
-            bottom: '100%',
-            left: '0',
-            marginBottom: '8px',
-            width: '300px',
-            background: '#1e293b',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            padding: '12px',
-            boxShadow: '0 12px 30px rgba(0, 0, 0, 0.6)',
-            zIndex: 100,
-            fontSize: '12px',
-            color: 'var(--text-primary)',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '6px',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-              paddingBottom: '4px',
-            }}
+      <AnimatePresence>
+        {hover && (
+          <motion.div
+            initial={{ opacity: 0, y: below ? -4 : 4, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: below ? -4 : 4, scale: 0.97 }}
+            transition={{ duration: 0.15 }}
+            onMouseEnter={show}
+            onMouseLeave={hide}
+            className={cn(
+              'glass-strong absolute left-0 z-40 w-72 rounded-xl p-3 text-left',
+              below ? 'top-full mt-2' : 'bottom-full mb-2',
+            )}
           >
-            <span style={{ fontWeight: 700, color: 'var(--accent-indigo)' }}>
-              Tool: {toolResult?.tool || 'unknown'}
-            </span>
-            <button
-              onClick={() => setIsOpen(false)}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--text-muted)',
-                cursor: 'pointer',
-                fontSize: '14px',
-              }}
-            >
-              ✕
-            </button>
-          </div>
-
-          <div style={{ marginBottom: '6px' }}>
-            <span style={{ color: 'var(--text-muted)' }}>Status: </span>
-            <span
-              style={{
-                color: toolResult?.status === 'ok' ? 'var(--accent-emerald)' : 'var(--accent-rose)',
-                fontWeight: 600,
-              }}
-            >
-              {toolResult?.status || 'n/a'}
-            </span>
-            <span style={{ color: 'var(--text-muted)', marginLeft: '8px' }}>
-              Runtime: {toolResult?.runtime_ms ? `${toolResult.runtime_ms}ms` : 'n/a'}
-            </span>
-          </div>
-
-          {toolResult?.args && Object.keys(toolResult.args).length > 0 && (
-            <div style={{ marginBottom: '6px' }}>
-              <div style={{ color: 'var(--text-muted)', marginBottom: '2px' }}>Arguments:</div>
-              <pre
-                style={{
-                  background: 'var(--bg-main)',
-                  padding: '6px',
-                  borderRadius: 'var(--radius-sm)',
-                  fontSize: '10px',
-                  overflowX: 'auto',
-                }}
-              >
-                {JSON.stringify(toolResult.args, null, 2)}
-              </pre>
-            </div>
-          )}
-
-          {metricObj && (
-            <div style={{ marginTop: '6px', fontWeight: 600, color: 'var(--accent-cyan)' }}>
-              Metric Value: {String(metricObj.value)} {metricObj.unit}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+            {toolResult ? (
+              <>
+                <div className="mb-2 flex items-center gap-2 border-b border-line pb-2">
+                  <Link2 className="size-3.5 text-neon" />
+                  <span className="flex-1 font-mono text-[11px] font-semibold text-ink">{toolResult.tool}</span>
+                  <span
+                    className={cn(
+                      'font-mono text-[9.5px] uppercase',
+                      toolResult.status === 'ok' ? 'text-emerald-400' : 'text-rose-400',
+                    )}
+                  >
+                    {toolResult.status}
+                  </span>
+                  <span className="font-mono text-[9.5px] text-ink-mute">{formatMs(toolResult.runtime_ms)}</span>
+                </div>
+                {metricObj ? (
+                  <div className="mb-2">
+                    <div className="font-mono text-[9px] uppercase tracking-[0.16em] text-ink-mute">
+                      {metricObj.name}
+                    </div>
+                    <div className="font-mono text-xl font-semibold text-neon">
+                      {formatValue(metricObj.value)}
+                      <span className="ml-1 text-[11px] font-normal text-ink-mute">{metricObj.unit}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mb-2 text-[11px] text-rose-300">
+                    Metric “{evidence.metric}” not exported by this tool.
+                  </div>
+                )}
+                {toolResult.args && Object.keys(toolResult.args).length > 0 && (
+                  <div className="max-h-24 overflow-hidden rounded-lg bg-black/30 p-2 font-mono text-[9.5px] leading-relaxed text-ink-dim">
+                    {Object.entries(toolResult.args)
+                      .slice(0, 5)
+                      .map(([k, v]) => (
+                        <div key={k} className="truncate">
+                          <span className="text-indigo-300">{k}</span>: {typeof v === 'string' ? v : JSON.stringify(v)}
+                        </div>
+                      ))}
+                  </div>
+                )}
+                <div className="mt-2 flex items-center gap-1 font-mono text-[9.5px] text-neon/80">
+                  click to open inspector <ArrowUpRight className="size-3" />
+                </div>
+              </>
+            ) : (
+              <div className="text-[11px] text-rose-300">
+                Tool result <span className="font-mono">{evidence.tool_result_id}</span> is not present in the
+                execution trace — this citation is ungrounded.
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </span>
   )
 }

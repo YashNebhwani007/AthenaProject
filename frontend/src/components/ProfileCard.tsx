@@ -1,5 +1,23 @@
-import React from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
+import {
+  Activity,
+  AlertTriangle,
+  Binary,
+  Calendar,
+  ChevronDown,
+  Copy,
+  Hash,
+  HardDrive,
+  Search,
+  Target,
+  Type,
+} from 'lucide-react'
+import React, { useMemo, useState } from 'react'
 import type { DatasetProfile } from '../api/types'
+import { cn } from '../lib/cn'
+import { estimateFootprint, formatBytes, formatCompact, formatValue } from '../lib/format'
+import { type Tone } from '../lib/tones'
+import { EmptyState, Meter, Panel, PanelHeader, Pill, RadialGauge, SectionLabel, Skeleton } from './ui/primitives'
 
 interface ProfileCardProps {
   datasetId: string | null
@@ -7,215 +25,282 @@ interface ProfileCardProps {
   isLoading?: boolean
 }
 
-export const ProfileCard: React.FC<ProfileCardProps> = ({
-  datasetId,
-  profile,
-  isLoading,
-}) => {
+function dtypeIcon(dtype: string) {
+  const d = dtype.toLowerCase()
+  if (d.includes('bool')) return Binary
+  if (d.includes('int') || d.includes('float') || d.includes('double') || d.includes('decimal'))
+    return Hash
+  if (d.includes('date') || d.includes('time')) return Calendar
+  return Type
+}
+
+export const ProfileCard: React.FC<ProfileCardProps> = ({ datasetId, profile, isLoading }) => {
+  const [filter, setFilter] = useState('')
+  const [expanded, setExpanded] = useState<string | null>(null)
+  const [warningsOpen, setWarningsOpen] = useState(true)
+
+  const columns = useMemo(() => Object.entries(profile?.columns || {}), [profile])
+
+  const stats = useMemo(() => {
+    if (!profile || columns.length === 0) return null
+    const totalCells = profile.row_count * Math.max(1, columns.length)
+    const nullCells = columns.reduce((acc, [, c]) => acc + (c.null_count || 0), 0)
+    const completeness = totalCells > 0 ? 1 - nullCells / totalCells : 1
+    const numeric = columns.filter(([, c]) => /int|float|double|decimal/i.test(c.dtype)).length
+    const footprint = estimateFootprint(profile.row_count, profile.columns)
+    const dupRatio = profile.row_count > 0 ? profile.duplicate_rows / profile.row_count : 0
+    return { completeness, nullCells, numeric, categorical: columns.length - numeric, footprint, dupRatio }
+  }, [profile, columns])
+
   if (isLoading) {
     return (
-      <div className="card" style={{ padding: '24px', textAlign: 'center' }}>
-        <div style={{ fontSize: '20px', marginBottom: '8px' }} className="pulse">
-          ⚡
+      <Panel className="flex flex-col gap-4 p-4">
+        <PanelHeader icon={Activity} title="Data Health" subtitle="profiling…" />
+        <div className="flex items-center gap-4">
+          <Skeleton className="size-[88px] rounded-full" />
+          <div className="flex flex-1 flex-col gap-2">
+            <Skeleton className="h-4" />
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
+          </div>
         </div>
-        <div style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>
-          Generating exploratory profile...
-        </div>
-      </div>
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Skeleton key={i} className="h-9" />
+        ))}
+      </Panel>
     )
   }
 
-  if (!profile) {
+  if (!profile || !stats) {
     return (
-      <div className="card" style={{ padding: '24px', textAlign: 'center' }}>
-        <div style={{ color: 'var(--text-muted)', fontSize: '13px' }}>
-          Select or upload a dataset to view its profile.
-        </div>
-      </div>
+      <Panel className="p-4">
+        <PanelHeader icon={Activity} title="Data Health" subtitle="no source mounted" />
+        <EmptyState
+          icon={HardDrive}
+          title="Awaiting dataset"
+          body="Mount a preset or ingest a file to compute completeness, schema and anomaly telemetry."
+          tone="mute"
+        />
+      </Panel>
     )
   }
 
-  const columns = Object.entries(profile.columns || {})
+  const completenessTone: Tone =
+    stats.completeness > 0.98 ? 'laser' : stats.completeness > 0.9 ? 'warn' : 'alert'
+  const filtered = columns.filter(([name]) => name.toLowerCase().includes(filter.toLowerCase()))
 
   return (
-    <div className="card" style={{ gap: '16px' }}>
-      <div className="card-header">
-        <div>
-          <h2 className="card-title">Dataset Health & Profile</h2>
-          <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-            ID: <span style={{ fontFamily: 'var(--font-mono)' }}>{datasetId}</span>
+    <Panel className="flex flex-col gap-4 p-4">
+      <PanelHeader
+        icon={Activity}
+        title="Data Health"
+        subtitle={<span className="normal-case tracking-normal">{datasetId}</span>}
+        right={
+          profile.quality_warnings?.length ? (
+            <Pill tone="warn" icon={AlertTriangle}>
+              {profile.quality_warnings.length}
+            </Pill>
+          ) : (
+            <Pill tone="laser">nominal</Pill>
+          )
+        }
+      />
+
+      {/* Gauge cluster */}
+      <div className="flex items-center gap-4">
+        <RadialGauge
+          value={stats.completeness}
+          tone={completenessTone}
+          label={`${(stats.completeness * 100).toFixed(1)}`}
+          sublabel="complete %"
+        />
+        <div className="grid flex-1 grid-cols-2 gap-x-3 gap-y-2.5">
+          <Readout label="Rows" value={formatCompact(profile.row_count)} />
+          <Readout label="Columns" value={String(profile.column_count)} />
+          <Readout label="Mem (est.)" value={formatBytes(stats.footprint)} />
+          <Readout
+            label="Duplicates"
+            value={String(profile.duplicate_rows)}
+            tone={profile.duplicate_rows > 0 ? 'warn' : undefined}
+          />
+          <div className="col-span-2">
+            <div className="mb-1 flex justify-between font-mono text-[9px] uppercase tracking-wider text-ink-mute">
+              <span>numeric {stats.numeric}</span>
+              <span>categorical {stats.categorical}</span>
+            </div>
+            <div className="flex h-1 gap-0.5 overflow-hidden rounded-full">
+              <motion.div
+                className="h-full rounded-full bg-neon/80"
+                initial={{ flexGrow: 0 }}
+                animate={{ flexGrow: stats.numeric || 0.0001 }}
+                transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+              />
+              <motion.div
+                className="h-full rounded-full bg-brand/80"
+                initial={{ flexGrow: 0 }}
+                animate={{ flexGrow: stats.categorical || 0.0001 }}
+                transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+              />
+            </div>
           </div>
-        </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <span className="badge badge-indigo">{profile.row_count.toLocaleString()} rows</span>
-          <span className="badge badge-indigo">{profile.column_count} cols</span>
         </div>
       </div>
 
-      {/* Quality Warnings Alert Banner */}
-      {profile.quality_warnings && profile.quality_warnings.length > 0 && (
-        <div
-          style={{
-            background: 'rgba(245, 158, 11, 0.1)',
-            border: '1px solid rgba(245, 158, 11, 0.3)',
-            borderRadius: 'var(--radius-sm)',
-            padding: '12px',
-          }}
-        >
-          <div
-            style={{
-              fontSize: '12px',
-              fontWeight: 700,
-              color: 'var(--accent-amber)',
-              marginBottom: '6px',
-            }}
-          >
-            ⚠️ Data Quality Warnings ({profile.quality_warnings.length})
-          </div>
-          <ul
-            style={{
-              fontSize: '11px',
-              color: 'var(--text-secondary)',
-              paddingLeft: '16px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '4px',
-            }}
-          >
-            {profile.quality_warnings.map((w, idx) => (
-              <li key={idx}>{w}</li>
-            ))}
-          </ul>
+      {/* Targets */}
+      {profile.suspected_targets?.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="flex items-center gap-1 font-mono text-[9px] uppercase tracking-widest text-ink-mute">
+            <Target className="size-3 text-emerald-400" /> targets
+          </span>
+          {profile.suspected_targets.map((t) => (
+            <Pill key={t} tone="laser" mono={false} className="font-mono normal-case">
+              {t}
+            </Pill>
+          ))}
         </div>
       )}
 
-      {/* Targets & Duplicates Row */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: '10px',
-          background: 'rgba(255, 255, 255, 0.02)',
-          padding: '10px',
-          borderRadius: 'var(--radius-sm)',
-          fontSize: '12px',
-        }}
-      >
-        <div>
-          <span style={{ color: 'var(--text-muted)' }}>Duplicate rows: </span>
-          <span style={{ fontWeight: 600 }}>{profile.duplicate_rows}</span>
+      {/* Warnings */}
+      {profile.quality_warnings?.length > 0 && (
+        <div className="overflow-hidden rounded-xl border border-warn/20 bg-warn/[0.04]">
+          <button
+            type="button"
+            onClick={() => setWarningsOpen((o) => !o)}
+            className="flex w-full items-center gap-2 px-3 py-2 text-left"
+          >
+            <AlertTriangle className="size-3.5 text-amber-400" />
+            <span className="flex-1 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-300">
+              Quality caveats
+            </span>
+            <ChevronDown
+              className={cn('size-3.5 text-amber-400/70 transition-transform', warningsOpen && 'rotate-180')}
+            />
+          </button>
+          <AnimatePresence initial={false}>
+            {warningsOpen && (
+              <motion.ul
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.25 }}
+                className="flex flex-col gap-1 px-3 pb-2.5"
+              >
+                {profile.quality_warnings.map((w, i) => (
+                  <li key={i} className="flex gap-2 text-[11px] leading-snug text-ink-dim">
+                    <span className="mt-1.5 size-1 shrink-0 rounded-full bg-amber-400/70" />
+                    {w}
+                  </li>
+                ))}
+              </motion.ul>
+            )}
+          </AnimatePresence>
         </div>
-        <div>
-          <span style={{ color: 'var(--text-muted)' }}>Targets: </span>
-          <span style={{ fontWeight: 600, color: 'var(--accent-emerald)' }}>
-            {profile.suspected_targets?.join(', ') || 'None detected'}
-          </span>
-        </div>
-      </div>
+      )}
 
-      {/* Column Schema & Missingness List */}
+      {/* Columns */}
       <div>
-        <div
-          style={{
-            fontSize: '12px',
-            fontWeight: 600,
-            color: 'var(--text-secondary)',
-            marginBottom: '8px',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-          }}
-        >
-          Columns & Completeness
+        <SectionLabel count={columns.length}>Schema & Completeness</SectionLabel>
+        <div className="relative mb-2">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3 -translate-y-1/2 text-ink-mute" />
+          <input
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            placeholder="filter columns"
+            className="h-7 w-full rounded-lg border border-line bg-black/20 pl-7 pr-2 font-mono text-[11px] text-ink placeholder:text-ink-mute focus:border-neon/40 focus:outline-none"
+          />
         </div>
-        <div
-          style={{
-            maxHeight: '260px',
-            overflowY: 'auto',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '6px',
-            paddingRight: '4px',
-          }}
-        >
-          {columns.map(([colName, info]) => {
+        <div className="flex max-h-[340px] flex-col gap-1 overflow-y-auto pr-1">
+          {filtered.map(([name, info], i) => {
             const nullPct = info.null_percent || 0
-            const barColor =
-              nullPct > 30
-                ? 'var(--accent-rose)'
-                : nullPct > 5
-                ? 'var(--accent-amber)'
-                : 'var(--accent-emerald)'
-
+            const tone: Tone = nullPct > 30 ? 'alert' : nullPct > 5 ? 'warn' : 'laser'
+            const Icon = dtypeIcon(info.dtype)
+            const isOpen = expanded === name
+            const isTarget = profile.suspected_targets?.includes(name)
+            const uniqRatio = profile.row_count ? info.unique_count / profile.row_count : 0
             return (
               <div
-                key={colName}
-                style={{
-                  padding: '8px 10px',
-                  borderRadius: 'var(--radius-sm)',
-                  background: 'var(--bg-input)',
-                  border: '1px solid var(--border-subtle)',
-                }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    marginBottom: '4px',
-                  }}
-                >
-                  <span
-                    style={{
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: '12px',
-                      fontWeight: 500,
-                    }}
-                  >
-                    {colName}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: '11px',
-                      color: 'var(--text-muted)',
-                    }}
-                  >
-                    {info.dtype} • {info.unique_count} unique
-                  </span>
-                </div>
-                {/* Missingness Progress Bar */}
-                <div
-                  style={{
-                    height: '4px',
-                    background: 'rgba(255, 255, 255, 0.06)',
-                    borderRadius: '2px',
-                    overflow: 'hidden',
-                  }}
-                >
-                  <div
-                    style={{
-                      height: '100%',
-                      width: `${Math.min(100, Math.max(0, 100 - nullPct))}%`,
-                      background: barColor,
-                    }}
-                  />
-                </div>
-                {nullPct > 0 && (
-                  <div
-                    style={{
-                      fontSize: '10px',
-                      color: barColor,
-                      marginTop: '2px',
-                      textAlign: 'right',
-                    }}
-                  >
-                    {nullPct.toFixed(1)}% null
-                  </div>
+                key={name}
+                className={cn(
+                  'rounded-lg border transition-colors',
+                  isOpen ? 'border-neon/20 bg-neon/[0.03]' : 'border-transparent hover:bg-white/[0.025]',
                 )}
+              >
+                <button
+                  type="button"
+                  onClick={() => setExpanded(isOpen ? null : name)}
+                  className="w-full px-2 py-1.5 text-left"
+                >
+                  <div className="mb-1 flex items-center gap-2">
+                    <Icon className="size-3 shrink-0 text-ink-mute" />
+                    <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-ink">
+                      {name}
+                    </span>
+                    {isTarget && <Target className="size-3 text-emerald-400" />}
+                    {uniqRatio > 0.98 && <Copy className="size-3 text-ink-mute" aria-label="near-unique" />}
+                    <span className="font-mono text-[9.5px] text-ink-mute">{info.dtype}</span>
+                    <span
+                      className={cn(
+                        'w-10 text-right font-mono text-[9.5px]',
+                        nullPct > 0 ? (tone === 'alert' ? 'text-rose-400' : 'text-amber-400') : 'text-ink-mute',
+                      )}
+                    >
+                      {nullPct > 0 ? `${nullPct.toFixed(1)}%` : '0%'}
+                    </span>
+                  </div>
+                  <Meter value={1 - nullPct / 100} tone={tone} delay={Math.min(i, 12) * 0.03} />
+                </button>
+                <AnimatePresence initial={false}>
+                  {isOpen && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.22 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="grid grid-cols-3 gap-x-2 gap-y-1.5 px-2 pb-2 pt-1 font-mono text-[10px]">
+                        <Stat k="unique" v={formatCompact(info.unique_count)} />
+                        <Stat k="nulls" v={formatCompact(info.null_count)} />
+                        <Stat k="card." v={`${(uniqRatio * 100).toFixed(1)}%`} />
+                        {info.min !== undefined && info.min !== null && <Stat k="min" v={formatValue(info.min)} />}
+                        {info.max !== undefined && info.max !== null && <Stat k="max" v={formatValue(info.max)} />}
+                        {info.mean !== undefined && info.mean !== null && <Stat k="mean" v={formatValue(info.mean)} />}
+                        {info.std !== undefined && info.std !== null && <Stat k="std" v={formatValue(info.std)} />}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             )
           })}
+          {filtered.length === 0 && (
+            <div className="py-4 text-center font-mono text-[10px] text-ink-mute">no columns match</div>
+          )}
         </div>
       </div>
-    </div>
+    </Panel>
   )
 }
+
+const Readout: React.FC<{ label: string; value: string; tone?: Tone }> = ({ label, value, tone }) => (
+  <div>
+    <div className="font-mono text-[9px] uppercase tracking-[0.14em] text-ink-mute">{label}</div>
+    <div
+      className={cn(
+        'font-mono text-[13px] font-semibold',
+        tone === 'warn' ? 'text-amber-300' : 'text-ink',
+      )}
+    >
+      {value}
+    </div>
+  </div>
+)
+
+const Stat: React.FC<{ k: string; v: string }> = ({ k, v }) => (
+  <div className="min-w-0">
+    <div className="text-[8.5px] uppercase tracking-widest text-ink-mute">{k}</div>
+    <div className="truncate text-ink-dim" title={v}>
+      {v}
+    </div>
+  </div>
+)

@@ -4,7 +4,10 @@
 
 import type { DatasetProfile, DemoDataset, RunResult, SSEMessage } from './types'
 
-const API_BASE = '/api'
+// Backend origin. Empty in dev (Vite proxies /api) and when the API serves the UI itself;
+// set VITE_API_BASE (e.g. https://athena-agent.onrender.com) when the UI is hosted separately.
+export const API_ORIGIN: string = (import.meta.env.VITE_API_BASE ?? '').replace(/\/+$/, '')
+const API_BASE = `${API_ORIGIN}/api`
 
 export async function uploadDataset(file: File): Promise<{
   dataset_id: string
