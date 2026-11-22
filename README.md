@@ -1,15 +1,165 @@
-# Athena AI — Autonomous Data Science & Decision Intelligence Agent
+<div align="center">
 
-[![CI Test Suite](https://github.com/YashNebhwani007/AthenaProject/actions/workflows/ci.yml/badge.svg)](https://github.com/YashNebhwani007/AthenaProject)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)](pyproject.toml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+# ◬ ATHENA
 
-Athena is an autonomous, evidence-grounded data science agent. While general-purpose LLMs and standard code interpreters produce convincingly written but mathematically hallucinated reports, confuse correlation with causation, and fit machine learning models on target-leaked features, Athena enforces **deterministic tool execution, formal hypothesis testing, leak-free machine learning, and an adversarial 5-point verification and repair loop**.
+### The autonomous data scientist that **can't hallucinate a number**.
 
-Every claim in an Athena report is linked directly to a tool execution ID, grounded within a 1% tolerance, checked for statistical significance with multiplicity corrections, and audited for data quality caveats.
+Ask a question in plain English. Athena plans the analysis, runs **real** SQL, statistics and ML,
+then **mechanically verifies every claim** in its report against the tool outputs before you ever see it.
 
-![Athena Autonomous Data Science Agent Demo](docs/demo.gif)
+[![Live Demo](https://img.shields.io/badge/▶_LIVE_DEMO-athena--cockpit.vercel.app-00f0ff?style=for-the-badge&labelColor=05070b)](https://athena-cockpit.vercel.app)
+
+[![CI](https://github.com/YashNebhwani007/AthenaProject/actions/workflows/ci.yml/badge.svg)](https://github.com/YashNebhwani007/AthenaProject/actions)
+![Tests](https://img.shields.io/badge/tests-210_passing-10b981)
+![Ruff](https://img.shields.io/badge/lint-ruff_clean-10b981)
+![Python](https://img.shields.io/badge/python-3.11+-3776ab?logo=python&logoColor=white)
+![React](https://img.shields.io/badge/React_19-TypeScript-61dafb?logo=react&logoColor=black)
+![FastAPI](https://img.shields.io/badge/FastAPI-SSE_streaming-009688?logo=fastapi&logoColor=white)
+![DuckDB](https://img.shields.io/badge/DuckDB-in--process_OLAP-fff000?logo=duckdb&logoColor=black)
+![MCP](https://img.shields.io/badge/MCP-server-6366f1)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+<br/>
+
+<img src="docs/screenshots/02-verified-report.png" alt="Athena Cockpit — a verified analytical report with live tool trace" width="100%"/>
+
+<sub>A real run on the live deployment: 5 deterministic tool calls, 4 findings, **17/17 verifier checks passed**, every number traced to a tool result.</sub>
+
+</div>
+
+---
+
+## The problem
+
+Ask a general-purpose LLM *"are churned customers charged more?"* and you get a fluent, confident paragraph. The numbers may be invented, a correlation quietly becomes "causes", and the model happily trains on a column that leaks the answer. **You can't tell which sentences to trust**, so you re-do the analysis by hand.
+
+## The idea
+
+Athena splits the job in two, so the model never gets to guess:
+
+| | Plain LLM / code interpreter | **Athena** |
+|---|---|---|
+| Where numbers come from | Generated text | **Deterministic tools** (DuckDB, SciPy, LightGBM, SHAP) |
+| Is a claim checked? | No | **Every claim is verified** against tool output (±1% tolerance) |
+| Correlation vs. causation | Slips through | **Causal-language trap** blocks unsupported causal verbs |
+| Target leakage | Trains on it happily | **6-check leakage audit**, propagated into the report |
+| Unanswerable questions | Makes something up | **Refuses**, and says what data is missing |
+| Audit trail | None | **Every finding cites a tool run ID** you can open and inspect |
+
+> The LLM is the *planner and writer*. It is never the *calculator*.
+
+---
+
+## The Cockpit
+
+A mission-control UI built for the way analysts actually work: you watch the agent think, and you can inspect any step.
+
+<table>
+<tr>
+<td width="50%"><img src="docs/screenshots/05-tool-inspector.png" alt="Tool inspector showing SQL, metrics and raw output"/><br/><sub><b>Tool inspector.</b> Click any step or evidence chip to see the exact SQL, arguments, exported metrics and raw output.</sub></td>
+<td width="50%"><img src="docs/screenshots/04-event-stream.png" alt="Live SSE event stream"/><br/><sub><b>Live flight recorder.</b> Every Server-Sent Event as it happens: tool calls, draft, verification, delivery.</sub></td>
+</tr>
+</table>
+
+- **Streaming everything.** Tool results, the draft report and verifier passes arrive over SSE and animate in live.
+- **Mission pipeline.** Plan → Execute → Draft → Verify → Deliver, with a running clock and counters.
+- **Evidence chips.** Each finding links to the exact tool metric it relies on, with the value resolved inline.
+- **Verifier audit.** Per-rule pass/fail breakdown, repair attempts, and unverified-claim count.
+- **Dark glassmorphism + neon HUD**, keyboard-first (`Ctrl/⌘ + K`, `Esc` to abort, `↑` for history), responsive down to phones.
+- **Charts** use a custom dark Plotly theme and are lazy-loaded, so the page stays fast.
+
+---
+
+## How a question flows
+
+```mermaid
+flowchart LR
+  Q["❓ Question"] --> P["🧠 Plan<br/>(LLM)"]
+  P --> T["🔧 Deterministic tools<br/>SQL · stats · ML · SHAP · leakage"]
+  T --> D["📝 Draft report<br/>with {{tool.metric}} placeholders"]
+  D --> V{"🛡️ 5-rule<br/>verifier"}
+  V -- "violations" --> R["♻️ Repair prompt<br/>(up to 2×)"]
+  R --> D
+  V -- "all pass" --> F["✅ Verified report<br/>+ evidence + charts"]
+```
+
+Findings are written with placeholders like `{{t2.row_1_avg_monthly_charges}}` that are **resolved from real tool output**, so a number the tools never produced simply can't appear.
+
+### The 5-rule verifier
+
+| Rule | What it enforces |
+|---|---|
+| **V1 Numeric grounding** | Any literal number in prose must match a cited metric within 1% relative / 0.005 absolute |
+| **V2 Claim ↔ evidence** | "Significant" requires *p < α* after multiplicity correction; "higher/lower" must match the effect sign; "strong/weak" must match effect-size thresholds |
+| **V3 Causal-language trap** | No *causes / leads to / due to* from observational data |
+| **V4 Linkage** | Every finding cites a real tool run; every recommendation links back to findings |
+| **V5 Data-quality propagation** | Severe leakage or missingness must be disclosed, never buried |
+
+If repairs fail after the budget is spent, unverified claims are shown with a visible audit badge rather than silently passed through.
+
+---
+
+## Deterministic toolbox
+
+| Tool | What it does |
+|---|---|
+| `profile` | Schema, missingness, duplicates, summary stats, quality warnings |
+| `run_sql` | **AST-validated, read-only** DuckDB SQL (sqlglot) with automatic metric extraction |
+| `recommend_test` | Checks assumptions and picks the right statistical test |
+| `stats_test` | t-test, ANOVA, Mann-Whitney, χ², Fisher, Pearson/Spearman with effect sizes and multiplicity correction |
+| `check_leakage` | 6 independent leakage checks (names, IDs, correlation, single-feature AUC, duplicates, temporal) |
+| `train_model` | Leak-free pipelines, cross-validation, held-out evaluation, LightGBM + baselines |
+| `explain_model` | Global and local SHAP explanations |
+| `predict_model` | Out-of-sample scoring on new inputs |
+| `make_plot` | Interactive Plotly + static chart artifacts |
+
+---
+
+## Quickstart
+
+**Prerequisites:** Python 3.11+, Node 20+.
+
+```bash
+git clone https://github.com/YashNebhwani007/AthenaProject.git
+cd AthenaProject
+pip install -e ".[dev]"
+```
+
+Create a `.env` (any OpenAI-compatible endpoint works; Gemini shown):
+
+```bash
+ATHENA_LLM_PROVIDER=gemini
+ATHENA_LLM_MODEL=gemini-flash-lite-latest
+ATHENA_LLM_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai
+ATHENA_LLM_API_KEY=your_key
+```
+
+Run the backend and the UI in two terminals:
+
+```bash
+python -m uvicorn athena.api.main:app --port 8000      # API  → http://127.0.0.1:8000/docs
+npm --prefix frontend install && npm --prefix frontend run dev   # UI → http://localhost:5173
+```
+
+> **No API key?** Set `ATHENA_LLM_PROVIDER=demo` for a built-in scripted model, which is handy for exploring the UI.
+
+Try these on the preset datasets:
+
+- *"Are monthly charges significantly different between churned and active customers?"*
+- *"Train a predictive model for churn and explain the top drivers."*
+- Pick **Telco Churn with Planted Leakage**, ask for a model, and watch the leakage audit catch `cancellation_fee`.
+- *"What's the weather tomorrow?"*, which Athena should refuse.
+
+### Other entry points
+
+```bash
+python -m athena.cli profile benchmark/datasets/telco_churn.csv        # CLI
+athena-mcp                                                             # MCP server (stdio)
+pytest tests/ -v                                                       # 210 tests
+python -m benchmark.runner --systems A1,A2,B1 --questions smoke        # benchmark
+```
+
+**Use it from Claude Desktop / Cursor** through MCP: see [`docs/mcp-usage.md`](docs/mcp-usage.md).
 
 ---
 
@@ -17,247 +167,93 @@ Every claim in an Athena report is linked directly to a tool execution ID, groun
 
 ```mermaid
 graph TD
-  User["Analyst / Decision Maker"] --> UI["React Frontend / Claude Desktop (MCP)"]
-  UI --> API["FastAPI Server (SSE Streaming)"]
-  API --> Orchestrator["Athena Orchestrator"]
+  UI["React 19 + TypeScript Cockpit<br/>(Vercel)"] -- "REST + SSE" --> API["FastAPI<br/>(Render · Docker)"]
+  MCP["Claude Desktop / Cursor<br/>(MCP stdio)"] --> Tools
+  API --> Orch["Orchestrator<br/>budgeted agent loop"]
+  Orch --> LLM["LLM client<br/>OpenAI-compatible · cached · demo mode"]
+  Orch --> Tools["Deterministic tools<br/>DuckDB · SciPy · statsmodels · LightGBM · SHAP"]
+  Orch --> Ver["5-rule verifier + repair loop"]
+  Ver --> Render["Placeholder renderer"]
+  Render --> API
+```
 
-  subgraph DeterministicTools["Sandboxed Deterministic Tools"]
-    Orchestrator --> SQL["DuckDB (AST-Validated Read-Only SQL)"]
-    Orchestrator --> Stats["SciPy / Statsmodels (Hypothesis Tests + Effect Sizes)"]
-    Orchestrator --> Leak["Data Leakage Auditor (6 Independent Checks)"]
-    Orchestrator --> ML["Scikit-Learn / LightGBM (Leak-Free Pipelines)"]
-    Orchestrator --> Explain["SHAP Explainability (Global + Local)"]
-    Orchestrator --> Predict["Predictive Inference (Out-of-Sample Scoring)"]
-    Orchestrator --> Viz["Plotly & Matplotlib Visualizations"]
-  end
-
-  DeterministicTools --> Trace["Step Execution Trace & Typed Metrics"]
-  Trace --> DraftReport["Draft Report Generator with {{tool.metric}} Placeholders"]
-
-  subgraph Verifier["5-Point Adversarial Verifier & Repair Loop"]
-    DraftReport --> V1["V1: Numeric Grounding (±1% Rel / 0.005 Abs)"]
-    DraftReport --> V2["V2: Claim-Evidence Consistency (p < α, Sign, Effect Size)"]
-    DraftReport --> V3["V3: Causal Language Trap Check"]
-    DraftReport --> V4["V4: Linkage (Every finding cited, every rec linked)"]
-    DraftReport --> V5["V5: Data Quality & Leakage Propagation"]
-    V1 & V2 & V3 & V4 & V5 --> Verdict{"All Rules Pass?"}
-    Verdict -- "Violations Detected" --> RepairLoop["Repair Prompt to LLM (Up to 2 Iterations)"]
-    RepairLoop --> DraftReport
-    Verdict -- "All Rules Pass" --> Renderer["Placeholder Renderer"]
-  end
-
-  Renderer --> FinalReport["Verified Analytical Report + Interactive Plots"]
-  FinalReport --> UI
+```
+src/athena/
+├── agent/       orchestrator, prompts, token/step budget
+├── tools/       the 9 deterministic tools
+├── verify/      verifier rules V1–V5, repair loop
+├── render/      placeholder resolution → final report
+├── llm/         provider clients, response cache, demo client
+├── api/         FastAPI app, routes, SSE events
+├── mcp_server/  MCP stdio server
+├── sdk/         Python SDK
+└── data/        dataset registry & loaders
+frontend/src/    React cockpit (components, hooks, SSE client)
+benchmark/       47-question evaluation suite with ground truth
 ```
 
 ---
 
-## What Does "Verified" Mean?
+## Engineering quality
 
-Athena eliminates ungrounded LLM hallucination through a five-rule formal verification engine:
+- **210 automated tests**, run against real DuckDB instances and real DataFrames rather than mocks; only LLM calls are mocked or replayed.
+- **Verifier rules each have positive and negative test cases.**
+- **Ruff-clean** (`E`, `F`, `I`), strict typing, **Pydantic v2** schemas end to end.
+- **CI** on every push (lint + tests on Python 3.11 and 3.12).
+- **SQL sandbox:** only read-only statements pass AST validation; DuckDB runs with memory and time limits.
+- **Multi-stage Docker build**, health checks, structured logging.
+- **40 Architecture Decision Records** and 28 technical guides in [`docs/`](docs/).
 
-1. **V1 — Numeric Grounding:** Findings use template placeholders (e.g. `{{t1.p_value}}`) that resolve against executed tool outputs. Literal numbers in free text are checked against cited metrics with a strict 1% relative / 0.005 absolute tolerance. Uncited numbers fail verification.
-2. **V2 — Claim-Evidence Consistency:** Claims asserting "significance" require $p < \alpha$ (after family-wise Bonferroni correction). Directional words ("higher", "lower") must match the mathematical effect sign. Qualitative strength labels ("strong", "moderate", "weak") must strictly correspond to standard statistical thresholds (e.g., Pearson $|r| > 0.7$, Cohen's $d > 0.8$).
-3. **V3 — Causal Language Trap Check:** Observational analyses cannot use causal verbs (*causes*, *leads to*, *results in*, *due to*) unless an experimental/causal design was executed.
-4. **V4 — Structural Linkage:** Every finding must cite at least one valid tool result ID in the execution trace. Every recommendation must link back to specific finding IDs.
-5. **V5 — Data Quality & Leakage Propagation:** If high-severity target leakage or severe missingness (>30%) is detected, the report is rejected unless explicit caveats and model metric discounts are prominently highlighted.
+### Benchmark harness
 
-If repairs fail after 2 iterations, unverified claims are degraded with visible audit badges.
+`benchmark/` ships a **47-question suite** over Telco churn, Adult income, California housing and Titanic (each with planted-leakage variants), with computed ground truth. It covers SQL, statistics, modeling, leakage detection, refusals, causal traps, prompt injection and multi-step questions, and compares three systems: **A1** (full Athena), **A2** (no verifier) and **B1** (plain LLM + code).
 
----
+| Category | Questions | | Category | Questions |
+|---|:-:|---|---|:-:|
+| SQL | 13 | | Refusal | 4 |
+| Statistics | 9 | | Causal trap | 3 |
+| Modeling | 6 | | Prompt injection | 3 |
+| Leakage | 6 | | Multi-step | 3 |
 
-## Benchmark Evaluation
-
-Athena includes a standardized 42-question benchmark across 4 datasets (Telco Churn, Adult Income, California Housing, and Titanic), evaluating 8 question categories:
-
-| Metric | System A1 (Athena Full) | System A2 (Athena Unverified) | System B1 (Plain LLM + Pandas Code) |
-|---|:---:|:---:|:---:|
-| **Numeric Accuracy** | **95.2%** | 88.1% | 66.7% |
-| **Hallucination Rate** | **0.0%** | 4.8% | 28.6% |
-| **Causal Trap Catch Rate** | **100.0%** | 60.0% | 0.0% |
-| **Target Leakage Precision** | **100.0%** | 83.3% | 33.3% |
-| **Target Leakage Recall** | **91.7%** | 75.0% | 41.7% |
-| **Refusal / Unanswerable Accuracy** | **100.0%** | 80.0% | 20.0% |
-| **Verification Pass Rate** | **97.6%** | N/A | N/A |
-
-Run the benchmark locally:
-```bash
-python -m benchmark.runner --systems A1,A2,B1 --questions smoke
-```
-
----
-
-## Deterministic Analytical & Machine Learning Suite
-
-Athena provides a comprehensive suite of 8 deterministic tools that execute sandboxed computations without LLM guessing:
-
-| Capability | Tool | Description |
-|---|---|---|
-| **Dataset Profiling** | `profile` | Schema detection, missingness, duplicate counts, summary statistics, and data quality warnings. |
-| **SQL Subgroup Analysis** | `run_sql` | AST-validated read-only DuckDB SQL with automated granular metric extraction and table view aliases. |
-| **Hypothesis Testing** | `recommend_test` & `stats_test` | Assumption verification and formal tests (t-test, ANOVA, Mann-Whitney, Chi-Square, Fisher's exact, Pearson/Spearman correlation) with Bonferroni correction. |
-| **Data Leakage Auditing** | `check_leakage` | 6 independent checks: suspicious column names, unique IDs, high correlation, single-feature AUC, duplicate rows, temporal leakage. |
-| **Model Training** | `train_model` | Leak-free preprocessing, 5-fold cross-validation, and held-out test evaluation across baseline, linear, and gradient-boosted (LightGBM) models. |
-| **SHAP Explainability** | `explain_model` | Global SHAP feature importance rankings and local waterfall explanations for individual predictions. |
-| **Predictive Inference** | `predict_model` | Out-of-sample prediction and probability scoring on new/hypothetical feature inputs with automated imputation. |
-| **Visualizations** | `make_plot` | Interactive Plotly charts and static publication-grade PNG artifacts (histograms, bar charts, box plots, scatter plots, heatmaps). |
-
----
-
-## Quickstart
-
-### Prerequisites
-- Python 3.11+
-- Node.js 20+ and npm
-
-### 1. Clone & Install Backend
-```bash
-git clone https://github.com/YashNebhwani007/AthenaProject.git
-cd AthenaProject
-
-python -m venv .venv
-# Windows:
-.venv\Scripts\activate
-# Linux/macOS:
-# source .venv/bin/activate
-
-pip install -e ".[dev]"
-```
-
-### 2. Configure Environment
-Create a `.env` file in the root directory:
-```bash
-LLM_PROVIDER=openrouter
-LLM_API_KEY=your_openrouter_api_key
-LLM_MODEL=anthropic/claude-3.5-sonnet
-DEMO_MODE=false
-```
-
-### 3. Build & Run Frontend
-```bash
-cd frontend
-npm install
-npm run build
-cd ..
-```
-
-### 4. Launch Athena API & Web App
-```bash
-uvicorn athena.api.main:app --reload --port 8000
-```
-Open [http://localhost:8000](http://localhost:8000) in your browser.
-
----
-
-## Model Context Protocol (MCP) Integration
-
-Athena can be run as an MCP server over `stdio`, giving Claude Desktop, Cursor, and custom agent systems direct access to Athena's verified analytical tools:
-
-```bash
-athena-mcp
-```
-
-Add to your `claude_desktop_config.json`:
-```json
-{
-  "mcpServers": {
-    "athena": {
-      "command": "athena-mcp",
-      "args": []
-    }
-  }
-}
-```
-See [`docs/mcp-usage.md`](docs/mcp-usage.md) for full configuration and Python client examples.
-
----
-
-## Architectural Decision Records (ADRs)
-
-Key architectural decisions are documented under [`docs/adr/`](docs/adr/):
-
-- [ADR-01: Report Generation & Verification Strategy](docs/adr/adr-01-report-generation.md)
-- [ADR-02: Orchestrator Architecture & Control Flow](docs/adr/adr-02-orchestrator.md)
-- [ADR-03: LLM Provider & Multi-Provider Strategy](docs/adr/adr-03-llm-provider.md)
-- [ADR-04: SQL Dialect & Validation Engine](docs/adr/adr-04-sql-validation.md)
-- [ADR-05: Machine Learning Tool Scope](docs/adr/adr-05-ml-scope.md)
-- [ADR-06: Statistical Test Selection & Correction](docs/adr/adr-06-stats-test-selection.md)
-- [ADR-07: Verifier Rule Formalization](docs/adr/adr-07-verification.md)
-- [ADR-08: Frontend Architecture & Visualization](docs/adr/adr-08-frontend.md)
-- [ADR-09: Deployment Target & Resource Optimization](docs/adr/adr-09-deployment.md)
-- [ADR-10: Benchmark Suite Design & Ground Truth](docs/adr/adr-10-benchmark.md)
-- [ADR-11: Multi-Table Architecture](docs/adr/adr-11-multi-table.md)
-- [ADR-12: Session Persistence Strategy](docs/adr/adr-12-persistence.md)
-- [ADR-13: MCP Transport & Packaging](docs/adr/adr-13-mcp-transport.md)
-- [ADR-14: Predictive Inference Tool Design](docs/adr/adr-14-predictive-inference.md)
-- [ADR-15: Granular SQL Metric Extraction](docs/adr/adr-15-sql-metric-extraction.md)
-- [ADR-16: Session Auto-Recovery and API Resilience](docs/adr/adr-16-session-resilience.md)
-- [ADR-17: Verifier Repair Prompt Engineering](docs/adr/adr-17-verifier-repair-prompting.md)
-- [ADR-18: Multi-Model Benchmark Evaluation Strategy](docs/adr/adr-18-benchmark-evaluation-strategy.md)
-- [ADR-19: DuckDB Table Aliasing and AST Safety](docs/adr/adr-19-duckdb-table-aliasing.md)
-- [ADR-20: Frontend SSE Stream Normalization](docs/adr/adr-20-sse-stream-normalization.md)
-- [ADR-21: Client-Side Markdown Rendering and KaTeX Sanitization](docs/adr/adr-21-client-side-markdown-security.md)
-- [ADR-22: Web Worker Offloading for Large Interactive Visualizations](docs/adr/adr-22-web-worker-plot-offloading.md)
-- [ADR-23: Dynamic Fast-Path vs Deep-Verification Routing](docs/adr/adr-23-dynamic-orchestration-routing.md)
-- [ADR-24: MCP Tool Timeout Handling and Deadlock Mitigation](docs/adr/adr-24-mcp-timeout-deadlock-mitigation.md)
-- [ADR-25: Multi-Table Join AST Validation and Schema Reflection](docs/adr/adr-25-multi-table-join-ast-validation.md)
-- [ADR-26: DuckDB Memory Limit and Disk Spill Policy](docs/adr/adr-26-duckdb-memory-disk-spill-policy.md)
-- [ADR-27: Automated Family-Wise Error Rate and FDR Control](docs/adr/adr-27-fwer-and-fdr-multiplicity-control.md)
-- [ADR-28: Variance Inflation Factor (VIF) Collinearity Pruning](docs/adr/adr-28-vif-collinearity-pruning.md)
-- [ADR-29: Structured Log Ingestion and OpenTelemetry Trace Context](docs/adr/adr-29-structured-logging-opentelemetry.md)
-- [ADR-30: Human-in-the-Loop Interactive Verification Checkpoints](docs/adr/adr-30-human-in-the-loop-checkpoints.md)
-- [ADR-31: Streaming Token Backpressure and Client Buffer Sizing](docs/adr/adr-31-streaming-backpressure-buffer-sizing.md)
-- [ADR-32: LLM Temperature and Top-p Sampling Policies for Analytical Determinism](docs/adr/adr-32-llm-sampling-determinism.md)
-- [ADR-33: Multi-Stage Docker Caching and Dependency Wheel Pre-Compilation](docs/adr/adr-33-docker-layer-caching.md)
-- [ADR-34: Automated Target Inference Heuristic Weighting](docs/adr/adr-34-target-inference-heuristics.md)
-- [ADR-35: Handling Zero-Variance Categorical Predictors in LightGBM](docs/adr/adr-35-zero-variance-categorical-pruning.md)
-- [ADR-36: Automated Causal Graph Acyclicity Validation](docs/adr/adr-36-causal-graph-acyclicity.md)
-- [ADR-37: WebSocket vs SSE Protocol Evaluation for Real-Time Telemetry](docs/adr/adr-37-websocket-vs-sse-telemetry.md)
-- [ADR-38: DuckDB Parquet Row-Group Pushdown Optimization](docs/adr/adr-38-duckdb-rowgroup-pushdown.md)
-- [ADR-39: Persistent Audit Logging for Compliance and Model Lineage](docs/adr/adr-39-persistent-audit-logging.md)
-- [ADR-40: Fallback Strategy for Catastrophic Verifier Rejection Loops](docs/adr/adr-40-verifier-catastrophic-fallback.md)
-
----
-
-## Technical Guides
-
-Comprehensive operational guides are available in [`docs/guides/`](docs/guides/):
-
-- [Dataset Onboarding Guide](docs/guides/dataset-onboarding.md)
-- [Verifier Rules Specification](docs/guides/verifier-rules-specification.md)
-- [Prompt Engineering & Tool Calling Manual](docs/guides/prompt-engineering-tool-calling.md)
-- [Statistical Test Selection Decision Tree](docs/guides/statistical-test-decision-tree.md)
-- [Data Leakage Audit Heuristics](docs/guides/data-leakage-audit-rules.md)
-- [SHAP Explainability Manual](docs/guides/shap-explainability-manual.md)
-- [Benchmark Scoring Methodology](docs/guides/benchmark-scoring-methodology.md)
-- [Claude Desktop & Claude Code MCP Setup](docs/guides/mcp-setup-claude-desktop.md)
-- [Claude Code Integration Guide](docs/guides/claude-code-mcp-integration.md)
-- [Frontend Architecture & SSE Streaming Manual](docs/guides/frontend-architecture.md)
-- [DuckDB AST Security Sandbox & Validator Specification](docs/guides/sql-security-sandbox.md)
-- [DuckDB Secure Connection Pragma Guide](docs/guides/duckdb-secure-connection-pragma.md)
-- [AST SQLGlot Custom Transpilation](docs/guides/ast-sqlglot-transpilation.md)
-- [Hypothesis Testing Multiplicity Correction Guide](docs/guides/multiplicity-corrections.md)
-- [Statistical Effect Size Interpretation Guide](docs/guides/statistical-effect-sizes.md)
-- [LightGBM Architecture & Cross-Validation Manual](docs/guides/tree-model-hyperparameters.md)
-- [Class Imbalance Mitigation Strategies](docs/guides/class-imbalance-strategies.md)
-- [GPU Acceleration & CUDA Fallbacks for LightGBM](docs/guides/gpu-acceleration-lightgbm.md)
-- [TreeSHAP vs KernelSHAP Performance Guide](docs/guides/treeshap-performance-tuning.md)
-- [Time-Series Leakage Detection](docs/guides/time-series-leakage-detection.md)
-- [Executive Report Structuring & Citations](docs/guides/executive-report-structuring.md)
-- [Synthetic Benchmark Ground Truth Generation Guide](docs/guides/synthetic-benchmark-generation.md)
-- [Production Docker Deployment & Hardening Manual](docs/guides/production-docker-deployment.md)
-- [Contributor Workflow & Release Checklist](docs/guides/contributor-workflow.md)
-- [REST & SSE API Endpoint Integration Reference](docs/guides/api-endpoint-reference.md)
+Scores depend on the model you plug in, so none are hard-coded here. Run `python -m benchmark.runner --systems A1,A2,B1 --questions all` and the **Benchmark Suite** tab in the cockpit renders the results.
 
 ---
 
 ## Deployment
 
-Deploy using Docker on Render or any container runtime:
+| Piece | Where | Notes |
+|---|---|---|
+| UI | **Vercel** (`frontend/`) | Set `VITE_API_BASE` to the API origin |
+| API | **Render** (`render.yaml`, Docker) | Also serves the built UI at its own URL |
 
-```bash
-docker build -t athena .
-docker run -p 8000:8000 -e LLM_API_KEY="your-key" athena
-```
+The free Render tier sleeps when idle, so the first request after a quiet period can take 30 to 60 seconds. Full guide: [`docs/guides/production-docker-deployment.md`](docs/guides/production-docker-deployment.md).
 
-A turnkey [`render.yaml`](render.yaml) is provided for Render's free tier.
+---
+
+<details>
+<summary><b>📚 Architecture Decision Records & technical guides</b></summary>
+
+<br/>
+
+Every significant design choice is written up in [`docs/adr/`](docs/adr/) (index in [`docs/adr/README.md`](docs/adr/README.md)), including:
+verification strategy ([ADR-01](docs/adr/adr-01-report-generation.md), [ADR-07](docs/adr/adr-07-verification.md)),
+orchestrator control flow ([ADR-02](docs/adr/adr-02-orchestrator.md)),
+SQL AST validation ([ADR-04](docs/adr/adr-04-sql-validation.md)),
+statistical test selection ([ADR-06](docs/adr/adr-06-stats-test-selection.md)),
+multiplicity control ([ADR-27](docs/adr/adr-27-fwer-and-fdr-multiplicity-control.md)),
+SSE stream normalization ([ADR-20](docs/adr/adr-20-sse-stream-normalization.md)),
+and the verifier's catastrophic-failure fallback ([ADR-40](docs/adr/adr-40-verifier-catastrophic-fallback.md)).
+
+Hands-on guides in [`docs/guides/`](docs/guides/): [verifier rules](docs/guides/verifier-rules-specification.md), [leakage audit heuristics](docs/guides/data-leakage-audit-rules.md), [statistical test decision tree](docs/guides/statistical-test-decision-tree.md), [SHAP manual](docs/guides/shap-explainability-manual.md), [SQL security sandbox](docs/guides/sql-security-sandbox.md), [API reference](docs/guides/api-endpoint-reference.md), [MCP setup](docs/guides/mcp-setup-claude-desktop.md), [frontend architecture](docs/guides/frontend-architecture.md), and more.
+
+</details>
+
+---
+
+<div align="center">
+
+**Built by [Yash Nebhwani](https://github.com/YashNebhwani007)**: statistical rigor, automated verification, evidence-grounded insights.
+
+⭐ If this is useful, a star helps others find it.
+
+</div>
