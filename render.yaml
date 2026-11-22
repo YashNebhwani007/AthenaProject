@@ -5,15 +5,17 @@ services:
     plan: free
     region: oregon
     dockerfilePath: ./Dockerfile
-    envVars:
-      - key: DEMO_MODE
-        value: "true"
-      - key: LLM_API_KEY
-        sync: false
-      - key: LLM_PROVIDER
-        value: "openrouter"
-      - key: LLM_MODEL
-        value: "anthropic/claude-3.5-sonnet"
-      - key: ATHENA_DATA_DIR
-        value: "/tmp/athena_data"
     healthCheckPath: /health
+    envVars:
+      - key: ATHENA_LLM_PROVIDER
+        value: gemini
+      - key: ATHENA_LLM_MODEL
+        value: gemini-flash-lite-latest
+      - key: ATHENA_LLM_BASE_URL
+        value: https://generativelanguage.googleapis.com/v1beta/openai
+      - key: ATHENA_LLM_CACHE_MODE
+        value: "off"
+      - key: ATHENA_DATA_DIR
+        value: /tmp/athena_data
+      - key: ATHENA_LLM_API_KEY
+        sync: false
